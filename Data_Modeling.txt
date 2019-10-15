@@ -1,0 +1,135 @@
+Data Modeling
+
+Step1:
+	Users: 
+		Internal(80%) 
+			who making business (not tech) decision
+			Internal employees, team
+			e.g. Reporting Appliation for hospital
+				-Floor performance(head, manager)
+				-provider(doctor,nurse, how offer services)
+				-patient feedback
+				-appointment scheduling
+				-ER availability
+		External
+			public ursers (out of orgnization)
+			e.g.
+				Patient portal
+				-Schedule appointment
+				-visit summary
+				-payments
+				Website: best buy
+	Meeting:		
+		Joint Requirment Definition - JRD -->Joint Application Design - JAD
+
+		Alternative Methods:
+
+		Face to Face interviews
+		--> Anonymous Qestionaires 
+		--> Feedback Surveys or Equivalent
+	
+
+	Requirment session: 
+				Business Required Document - BRD 
+				Users, tech, managers, tech ceads, sr.developers, BA, DA, PM.
+				Time: depend on scoup of application
+					Small (2 weeks -- 2 months)
+					Huge (1 week -- 6 months)
+			--> Function Requirment Document -FRD
+		Alternative: 
+				Stakeholder Analysis
+					Find all those involved
+				Business Analysis Plan
+					Budget, strategy
+				Current State Analysis(same as BRD)
+					
+				Scope Statement Specification
+		Business Requirment Document (from BA, word templates,share by share point(SP), Team Foundation Server(TFS), Git)
+	Why:
+		Track changes
+		Share information among all persons
+		Finalize and find agreement on requirements
+		Prevent changes or legal issues
+
+
+	How Methodologies:
+		Waterfall
+		Scrum
+		Agile
+		Spiral
+	Variables to Monitor( How to choice methods):
+		Requirments
+		Schedule/Time of Year
+		Budget
+		Size of Project
+		Size of Team
+
+	Assenment: Hospital Mnagement, Health Insurance lceares, Auto Insurance
+		1. BRD - No more than 2 paragraphs
+	
+	Research Questions:
+		1. What is your style of gethering requirements?
+		2. How do you prepare 
+		3. What is GAP analysisw
+
+	Documents:
+		FRD,SDS, SDD, TDS, TDD
+			-Naning convenisions
+			-Steps for deployment
+			-Permission on a folder/DB/Server
+		Data Dictionary
+			-Information about database
+				-Tables
+				-Columns
+				-Datatypes
+				-Sample
+				-Application(Optional)
+		Mapping Document
+			1.ETL Process(Load data in sperate DB into one large total DB)
+			2.Upgrade DB Version (EX. ss2012-->SS2017)
+			3.Migrate From different DB System(EX.oracle-->SS)
+		QA Docs
+		RTM - Requirment Traceability Matrix: Map a reqirement to a test case
+			Unit test case document(Dev): ETL package testing carried out on a particular unit of development such as procedure, function, report, ssis package
+				Pre-requisites
+				1.Report is deployed correctly
+				2.Browser is available with required URL and permissions to run
+					EX
+					Case#|Steps|ExpectedResult|Actual Result|Status|Priority
+						1|1.Open report; 2.Click on drop down for report Month|User sees all 12 months with full names|Month Numbers|Failed|2|
+			Test Strategy Document(QA): similar to FRD(Functional Requirements)
+			Test Plan(QA): Plan for whole application testing
+			Test Case Document(QA): More detailed and involveds lot more senarios + Case are for complete software/application
+
+Step2:
+	Methodologies: Step by step process to execute an application
+		Steps: Requirment Analysis --> System Design --> Implementation --> Testing --> Deployment --> Maintenance
+		-Waterfall
+			Gather complete REQ (not flexible, time sensitive, Not visibility, cannot add new requirment later)
+		-Agile(Parallel)
+			Not a specific method. It's a principle , guide lines, or rules
+			1. Work is divided into sprints
+				short -small ,portion of work developed at a fast pace ( < 4 weeks)
+			2. Instead of documentation agles uses user stories(seperate sotries not the whole requirments)
+			3. Each sprint prouides usable delivery which improves visibility to users
+			4. Because of earlier visibility to user, we can incorporate user feed back
+		-Scrum(one kind of Agile)
+			1,product owner(jia fang)
+				Gather user stories related to the project (product backlog)
+				-Story points(How many hours will be cost for each stories, if product owner don't know about tech, scrum master or team make this)
+				-Assign priority to the tasks
+			2.Scrum master
+				1.What did you do yesterday
+				2. waht is the plan for today
+				3. any road blockes
+			3.scrum team
+		-Spiral
+			For every long and complex projects
+			Waterfull manytimes
+			1.Identification
+			2.Design
+			3.Construct or Build
+			4.Evaluation and Risk Analysis 
+				if need to upgrade, go 1
+				if do not proceed, stop,abandon
+				if complete, stop
