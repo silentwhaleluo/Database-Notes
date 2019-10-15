@@ -114,15 +114,22 @@ Step2:
 			3. Each sprint prouides usable delivery which improves visibility to users
 			4. Because of earlier visibility to user, we can incorporate user feed back
 		-Scrum(one kind of Agile)
-			1,product owner(jia fang)
-				Gather user stories related to the project (product backlog)
-				-Story points(How many hours will be cost for each stories, if product owner don't know about tech, scrum master or team make this)
-				-Assign priority to the tasks
-			2.Scrum master
-				1.What did you do yesterday
-				2. waht is the plan for today
-				3. any road blockes
-			3.scrum team
+			Meetings:
+				1.Sprint plan(Begining of the sprint,prepare and plan the sprint, set sprint goal and sprint backlog)
+				2.Daliy scrum(what did you do yesterday? What will you do today? Are there any obstacles? Every day)
+				3.Sprint review(users reviews, demo features, updated backlog)
+				4.Restrospective(Do not have user, try to solve and avoid wrongs with team number, identify ways of improving, end of sprint)
+				5.Product backlog grooming(Clarify product backlog items in preparation for sprint planning, before sprint planning)
+			Rules:
+				1,product owner(jia fang)
+					Gather user stories related to the project (product backlog)
+					-Story points(How many hours will be cost for each stories, if product owner don't know about tech, scrum master or team make this)
+					-Assign priority to the tasks
+				2.Scrum master
+					1.What did you do yesterday
+					2. waht is the plan for today
+					3. any road blockes
+				3.scrum team
 		-Spiral
 			For every long and complex projects
 			Waterfull manytimes
