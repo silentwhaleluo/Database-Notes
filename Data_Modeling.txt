@@ -173,6 +173,7 @@ KEYS:
 
 	Candidate Key
 		unique and not null, can be primary key but not. Candidate > Primary key
+		when PK is decided, candidate key disappear and just PK and alternative key
 		primary key + alternate key = Candidate key
 	Composite key
 		combination is unique an not null
@@ -205,6 +206,7 @@ Normalization
 		2. Avoid partial depenency(reduce the composite key, because if do not have composite key, there will not be partial dependency)
 	3NF
 		1.is in the 2NF
+		2.Avoid transitive dependency
 	BCNF
 	4NF
 	
@@ -212,6 +214,7 @@ Normalization
 	Usually organizations normalize DBs upto third normal form, because with 3NF there is a fine balance between READ(SELECT statement) performance and QUALITY of the data. If organizations go beyond 3rd NF, number of tables will be more and READ performance impacts drastically
 
 	Dependency
+		It defines how a non prime attribute is associated or identified by a prime attribute
 		1. Full
 		2. Partial
 		3. Transitive
@@ -227,19 +230,24 @@ Relationship:
 		conjuction/bridge table
 		break to 2 1:M relations
 		
-Relationship Participation
-
-	Fully Participating
+Relationship Participation (optionality)
+	Defines the role of engagement of an entity in a relation. It should be defined from Table A to Table B and Table B to Table A, in both directions. We need to define participation of both entities in the relation.n two tables(entities)
+	Two entities
+	both directions
+	Match records
+	1. Fully Participating
+	
 		All instances involved in relationship
 		table A: can have 0 or one or more in order B
 		table B: must has foreign key in order A
 		EX. cust and order, all order has a cust, not all custs have order
 
-	Partial Participating
+	2. Partial Participating
 		only some instances involved in relationship
 
 strong relation(identifying relationship)-Week entity: 
-	FK + Not Null
+	We talk this relation between a pair of parent and child tables, if this M:N, we break it to two relatonship by bridge(conjunction)
+	FK + Not Null(identifying, identifying only see child table)
 	Existence dependency
 	== full participating(child table)
 	only child table can be week entity
@@ -255,3 +263,29 @@ Degrees
 	Unary 1: Fk in the same table depend on PK
 	Binary 2: M:N many to many, still binary relation although should have bridge table
 	Ternary 3: more than 3 is not good in relation. The best is make binary
+	Reverse Engineering - It is a process of taking an existing physical database structure into a logical model, to make some structural changes in the model for supporting new business rules, or to support growing business.
+Scenarios for Reverse Engineering
+	1. If some business established sometime back and were using a database developed. After few years if the business has grown and need to support chaning requirements of customers they might need to modify the DB.
+	2. If an organization wants to migrate to different platform with changed structure of database but still holding majority of structure same they can go for it.
+	3. Some organizations provide services to various other organizations and these services are similar Ex: Bill review, might use same structured databases for all their clients with some changes for each of the clients. In this case they can use reverse engineering concept.
+
+
+When to not use Reverse Engineering
+	1. When changes required in existing database are not major or less than 10-15%, reverse engineering is not a good idea.
+	2. When changes required are huge around or over 80%
+
+Data Integrity - It refers to maintenance of data quality standards according to business needs/rules including the rules defined by the domain (industry) or governing authorities.
+
+	1. Entity Level - Every record in an entity can be uniquely identified.
+		We can achieve this using PK or UK+Not Null
+	2. Domain Integrity - It defines what are the values that can be entered into a particular column.
+		We maintain this using Data Type (this is basic level). Check constraint is another option
+		Ex: SSN should be 9 characters and all of them has to be numbers. Same with phone number.
+		Validating AGE, for selling smokes or liquor or some counter-top medication.
+	3. Referential Integrity - It refers to the maintenance or implementation of relationship in which child table inherits values from parent table and values to child table are only allowed if they exist in parent table.
+		We maintain this using PK-FK combination. Same thing can be achieved using Triggers.
+	4. User Defined Integrity -	These are some complex business rules defined within the scope of business.
+		We maintain this using Procedures, Functions and Triggers.
+		Ex: Re-ordering certain inventory which hits the order limit threshold
+		IRA account example
+		Notifying a team or admin based on certain activity in the database.
