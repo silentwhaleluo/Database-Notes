@@ -140,3 +140,118 @@ Step2:
 				if need to upgrade, go 1
 				if do not proceed, stop,abandon
 				if complete, stop
+
+
+
+Data Modeling Life Cycle
+
+	1. Conceptual
+		Focus on information, not data
+		EX. Book
+			Businness questions: How many books we sale, who is the fisrt pority
+			Book INFO(Name,price)
+			Author INFO(gender, DOB)
+			How Authors related to books
+			Order details(Date, costom, QTY, price,discount)
+			Author country details
+	2. Logical
+		Tools:ERWIN, ER Studio, Visio
+		Output: Logical model
+		Normalizaion here
+		Genrate SQL scripts(Generally not, and will not use in the real system, maybe use to track change)
+		Relationship between tables
+		EX. 
+			M : M
+	3. Pysical
+		Tools: DB, CSS, ORACLE
+		1 : M joint M : 1
+	
+KEYS:
+	Primary key:
+		Unique, and not null
+		Only one primary key, becuase we want to only use one to identification( eliminate confusion)
+
+	Candidate Key
+		unique and not null, can be primary key but not. Candidate > Primary key
+		primary key + alternate key = Candidate key
+	Composite key
+		combination is unique an not null
+		can be composite primary key or composite foreign key
+	Foreign key
+		can be duplicated
+		possible to be null (depend on business)
+		foreign key can reference to other table(parent table), can be primary key, candidate key, or alternate key, or composite key (unless unique and not null)
+	Unique key
+		must be unique, can have null
+	Surrogate key
+		in dimension tables in DWH, not much use in fact tables
+		unique + not null + Auto generated number
+		in OLAP, surrogate key
+
+Normalization
+	in logical phase
+	Organizing the data efficiently in a DB to avoid data anamolies and reduce the redundacy
+	1. DELTE
+	2. INSERT
+	3. UPDATE
+
+	1NF
+		1. Identify Prime Attribute
+		2. Each attribute should have atomic values
+		3. No repeated columns
+		4. Make sure all non prime attributes are directly or indirectly dependent on Prime Attribute
+	2NF
+		1. is in the 1NF
+		2. Avoid partial depenency(reduce the composite key, because if do not have composite key, there will not be partial dependency)
+	3NF
+		1.is in the 2NF
+	BCNF
+	4NF
+	
+	in general, no more than 3NF, because more normal form will grow the number of talbes and thus will reduce the performance when join
+	Usually organizations normalize DBs upto third normal form, because with 3NF there is a fine balance between READ(SELECT statement) performance and QUALITY of the data. If organizations go beyond 3rd NF, number of tables will be more and READ performance impacts drastically
+
+	Dependency
+		1. Full
+		2. Partial
+		3. Transitive
+
+Relationship:
+	1:1 one to one
+		table a: primary key
+		table b: foreign key + unique key
+	1:M one to many
+		table a: primary key
+		table b: foreign key 
+	M:N many to many
+		conjuction/bridge table
+		break to 2 1:M relations
+		
+Relationship Participation
+
+	Fully Participating
+		All instances involved in relationship
+		table A: can have 0 or one or more in order B
+		table B: must has foreign key in order A
+		EX. cust and order, all order has a cust, not all custs have order
+
+	Partial Participating
+		only some instances involved in relationship
+
+strong relation(identifying relationship)-Week entity: 
+	FK + Not Null
+	Existence dependency
+	== full participating(child table)
+	only child table can be week entity
+	EX. table cust: 
+		table order: week entity, relationship is strong
+
+Week relation(Exsistence dependency):
+	FK + Null
+	bidirection partial participting
+
+Degrees
+	How many entity involved in defiening relationship
+	Unary 1: Fk in the same table depend on PK
+	Binary 2: M:N many to many, still binary relation although should have bridge table
+	Ternary 3: more than 3 is not good in relation. The best is make binary
