@@ -263,12 +263,33 @@ Degrees
 	Unary 1: Fk in the same table depend on PK
 	Binary 2: M:N many to many, still binary relation although should have bridge table
 	Ternary 3: more than 3 is not good in relation. The best is make binary
+
+ER Diagram
+
+	-Chens Notation
+		Easy to understand
+		Entity - Boxed
+		Attribute - Oval or circle
+		Relationship - Diamond (verb)
+		Tools: Visio
+	-Crow's Feet Notation (INFORMATION ENGINEERING MODEL) (IE)
+		ER-Diagram focusing more on analytical design for Database or Data Warehouse. 
+		Connection Symbols  disply relationships
+		Entity and Attributes in table like format
+		Tools: ERwin
+		Relationship:
+			one -- Many
+			Optional -- Mandatory
+
+Reverse Engineering
+
+	DB --> Logical model --> New DB
+	Data Migration methods: ETL, SQL Scripts, BCP-BULK-INSERT
 	Reverse Engineering - It is a process of taking an existing physical database structure into a logical model, to make some structural changes in the model for supporting new business rules, or to support growing business.
 Scenarios for Reverse Engineering
 	1. If some business established sometime back and were using a database developed. After few years if the business has grown and need to support chaning requirements of customers they might need to modify the DB.
 	2. If an organization wants to migrate to different platform with changed structure of database but still holding majority of structure same they can go for it.
 	3. Some organizations provide services to various other organizations and these services are similar Ex: Bill review, might use same structured databases for all their clients with some changes for each of the clients. In this case they can use reverse engineering concept.
-
 
 When to not use Reverse Engineering
 	1. When changes required in existing database are not major or less than 10-15%, reverse engineering is not a good idea.
@@ -279,13 +300,25 @@ Data Integrity - It refers to maintenance of data quality standards according to
 	1. Entity Level - Every record in an entity can be uniquely identified.
 		We can achieve this using PK or UK+Not Null
 	2. Domain Integrity - It defines what are the values that can be entered into a particular column.
+		The value in these specific columns is not available
 		We maintain this using Data Type (this is basic level). Check constraint is another option
 		Ex: SSN should be 9 characters and all of them has to be numbers. Same with phone number.
 		Validating AGE, for selling smokes or liquor or some counter-top medication.
 	3. Referential Integrity - It refers to the maintenance or implementation of relationship in which child table inherits values from parent table and values to child table are only allowed if they exist in parent table.
 		We maintain this using PK-FK combination. Same thing can be achieved using Triggers.
 	4. User Defined Integrity -	These are some complex business rules defined within the scope of business.
+		The "INSERT" action is not allowed (the entire row is not avaiable)
 		We maintain this using Procedures, Functions and Triggers.
 		Ex: Re-ordering certain inventory which hits the order limit threshold
 		IRA account example
 		Notifying a team or admin based on certain activity in the database.
+
+Roles of BA
+1. He/She acts like a liaison (bridge) between development (technical team) and users.
+2. Responsible for gathering requirements along with developers. (in some cases all the requirements are gathered by BA)
+3. Create documentation for developers (such as mapping doc) and for users (like BRD)
+4. Organize meetings and in some cases acts like a SCRUM master.
+
+Roles of DA
+1. Analyze source systems such as flat files, databases, excel files etc.
+2. Identify data anamolies and
