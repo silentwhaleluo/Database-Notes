@@ -198,7 +198,7 @@ DDL are used to create, alter, or drop any database objects
 				qty INT DEFAULT 0,
 				total MONEY)
 				
-				INSERT INTO test VALUES (1,1,1,null,0)
+				INSERT INTO test VALUES (1,1,1, null,0)
 
 				INSERT INTO test (salesID, prodID, clientID, Total)VALUES (2,1,1,0)
 
@@ -220,7 +220,7 @@ DDL are used to create, alter, or drop any database objects
 	- DELETE
 	- INSERT
 	```sql
-	INSERT INTO TableWithDefault VALUES (1,'a',DEFAULT)
+	INSERT INTO TableWithDefault VALUES (1,'a', DEFAULT)
 	/*
 	Run to 
 	*/
@@ -340,11 +340,35 @@ Data query language
 		
 
 
+	- LIKE  
+	will internal convert to string to compare  
+	for like, SQL server cannot use index efficiently and thus for some case will use all records to compare if there is % at first, is not an efficient way
+		- use to string
+		- use to number
+		- use to date (not recommanded)
+
 	- wild card
 		- %
-		- ^ or ! (not)
-		- [] ( LIKE '[a,f,s]%'
+		- ^ (carat) or ! (not)
+		- [] 
+			- ( LIKE '[afs]%', 
+			- [a-m]% , 
+			- [a-M-]% the last one will inclueded ' - ')
 		- _  ( stands for any 1 charactor)
+		- ESCAPE change the charactor sel meaning
+		Can sign any un special character as ESCAPE charactor
+		```sql
+		SELECT *
+		FROM wildcards
+		WHERE descp LIKE '%*%%' ESCAPE '*'
+		-- Here we want strings with ' % '
+		
+		-- Alternaltively, we can use  [ ]
+		SELECT *
+		FROM wildcards
+		WHERE descp LIKE '%[%]%' ESCAPE '*'
+		
+		```
 
 	- Precedence   
 	The order is following:  
@@ -390,7 +414,7 @@ create two files:
 	- helps in back up
 	- disastor recorvery
 
-DML,DDL --> db_test --> .LDF --> .MDF
+DML, DDL --> db_test --> .LDF --> .MDF
 
 in delete, each delete will create one .LDF
 in truncate, only one or two .LDF (regarding to size)
