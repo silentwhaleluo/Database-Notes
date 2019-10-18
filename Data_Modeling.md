@@ -1,9 +1,16 @@
 # Data Modeling
 
+## Basic items
+- prime attribute,   
+- non-primary attribute  
+- multivalued attribute  
+- composite attrubute  
+- derived attribute  
 
 ## Requirment session: 
 1. JDR (Joint Requirment Definition)  
 - output:Business Required Document - BRD 
+	Also some organizations call the same as 1.1 Scope Statement Specification
 - who:Users, tech, managers, tech ceads, sr.developers, BA, DA, PM.
 - Users 
 	- Internal(80%)  
@@ -27,7 +34,10 @@
 	- Huge (1 week -- 6 months)
 - share by share point(SP), Team Foundation Server(TFS), Git
 2. Joint Application Design (JAD) 
-- output:Function Requirment Document -FRD
+- output:Function Requirment Document -FRD, also some organizations call the same as 
+		2.1 SDS - Software Development Specification
+		2.2 TDD - Technical Design Document
+		2.3 TDS - Technical Design Specification
 3. Alternative Methods:
 - Face to Face interviews
 - Anonymous Qestionaires 
@@ -94,14 +104,20 @@
 Methodologies: Step by step process to execute an application
 - Waterfall  
 	- Gather complete REQ (not flexible, time sensitive, Not visibility, cannot add new requirment later)
-	- Steps: Requirment Analysis --> System Design --> Implementation --> Testing --> Deployment --> Maintenance
-- Agile (Parallel)  
+	- Steps: 
+		1. RequirmentAnalysis
+		2. SystemDesign
+		3. Implementation
+		4. Testing
+		5. Deployment
+		6. Maintenance
+		7. - Agile (Parallel)  
 	Not a specific method. It's a principle , guide lines, or rules
-	1. Work is divided into sprints
+	1. Work is divided into **sprints**
 		short -small ,portion of work developed at a fast pace ( < 4 weeks)
-	2. Instead of documentation agles uses user stories(seperate sotries not the whole requirments)
-	3. Each sprint prouides usable delivery which improves visibility to users
-			4. Because of earlier visibility to user, we can incorporate user feed back
+	2. Instead of documentation agles uses user **stories** (seperate sotries not the whole requirments)
+	3. Each sprint provides **usable** delivery which improves **visibility** to users
+	4. Because of earlier visibility to user, we can incorporate user **feedback**
 - Scrum(one kind of Agile)
 	- Meetings:
 		1. Sprint plan(Begining of the sprint,prepare and plan the sprint, set sprint goal and sprint backlog)
@@ -122,10 +138,14 @@ Methodologies: Step by step process to execute an application
 	- Spiral  
 		For every long and complex projects  
 		Waterfull manytimes  
-		1. Identification
-		2. Design
-		3. Construct or Build
-		4. Evaluation and Risk Analysis   
+		1. Identification  
+			Business requirments, System requirments, unit requirments
+		2. Design  
+			System design, module design, architecture design
+		3. Construct or Build  
+			Build poc
+		4. Evaluation and Risk Analysis    
+			Management risks, schecule monitoring, customer feedback  
 			if need to upgrade, go 1  
 			if do not proceed, stop,abandon  
 			if complete, stop
@@ -146,13 +166,20 @@ Methodologies: Step by step process to execute an application
 		Order details(Date, costom, QTY, price,discount)  
 		Author country details
 2. Logical  
-	1. Normalization to the level expected by orgnization, normally #NF or BCNF etc.
-	2. Data Types
-	3. Domains
-	4. Constraints (PK, UK, FK, check, Null ability)
-	5. Relationships
-	6. Cardinality
-	7. Degree
+	- what to do in logical phase
+		For total:  
+		1. Normalization
+
+		For attributes level:  
+		1. Data Types,
+		2. Domains
+		3. Constrainst (PK, UK, FK, CHECK, NULL ability)
+
+		For relationship level:  
+		4. Define the relationships
+		5. Cardinality
+		7. Degree
+	
 	- Tools:ERWIN, ER Studio, Visio
 	- Output: Logical model
 	- Normalizaion here
@@ -287,12 +314,12 @@ We talk this relation between a pair of parent and child tables, if this M:N, we
 		table order: week entity, relationship is strong
 
 ## Degrees
-	Number of entities involved in a relationship  
-	1. Unary 1: Fk in the same table depend on PK
-		EX. Employee - manager
-	2. Binary 2: M:N many to many, still binary relation although should have bridge table
-	3. Ternary 3: more than 3 is not good in relation. The best is make binary
-	4. Quaternary - Four Entity involved in a relation. 
+Number of entities involved in a relationship  
+1. Unary 1: Fk in the same table depend on PK
+	EX. Employee - manager
+2. Binary 2: M:N many to many, still binary relation although should have bridge table
+3. Ternary 3: more than 3 is not good in relation. The best is make binary
+4. Quaternary - Four Entity involved in a relation. 
 
 ## ER Diagram
 
@@ -317,8 +344,8 @@ We talk this relation between a pair of parent and child tables, if this M:N, we
 		2. Limited details for attrubutes level
 		3. Relationships and participation does need annotations, but can be understood with the relationship symbols used
 		4. All keys can be defined
-		5. Mostly used in later logicl phae and physical phase
-		Connection Symbols  disply relationships
+		5. Mostly used in later logicl phase and physical phase
+		Connection Symbols disply relationships
 		Entity and Attributes in table like format
 		Tools: ERwin
 		Relationship:
@@ -339,6 +366,7 @@ Data Migration methods: ETL, SQL Scripts, BCP-BULK-INSERT
 	2. When changes required are huge around or over 80%
 
 ## Data Integrity 
+Data integrity is the maintenance of, and the assurance of the accuracy and consistency of, data over its entire life-cycle,[1] and is a critical aspect to the design, implementation and usage of any system which stores, processes, or retrieves data.
 It refers to maintenance of data quality standards according to business needs/rules including the rules defined by the domain (industry) or governing authorities.
 
 1. Entity Level 
