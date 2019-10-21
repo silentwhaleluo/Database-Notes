@@ -35,10 +35,16 @@ Information is passed from Windows system to SQL Server. This is most commonly u
 	2. SQL Server 
  Has to provide Login and Password		
 
- - SCHEME  
-	- It is a DB object focused specifically for security. It can be considered as a subset of DB. It provides convenience of maning different user groups to have access only to certain DB objects.
-	- Every object (which is under a DB) should have a schema, if no schema is defined while creating the object default schemea is assigned for the object. The default is dbo (database owner)
+ - SCHEMA  
+	- It is a DB object focused specifically for security. It can b econsidered as a subset of a DB. It provides convenience of managing different user groups to have access only to certain DB objects.  
+	- Every object (which is under a DB) should have a schema, if no schema is defined while creating the object default schema is assigned for the object. Default schema is DBO (database owner)
+	```sql
+	ALTER TABLE [dbo].[B32_Candidates]
+	ALTER COLUMN [Candidate_ID] INT
 
+	ALTER TABLE [dbo].[B32_Candidates]
+	ALTER COLUMN [Candidate_ID] INT NOT NULL
+	```
 ## Connecting to different Server Categories
 1. Local Server 
 This is an instance of server that is installed on a local machine like laptop or desktop.
@@ -65,15 +71,15 @@ Created by user
 These are created when SQL Server is installed.	
 
 - Master   
-It holds security related information and it is very important DB from migration and security perspective. It holds server level information such DB users, Server logins, passwords, server level settings. All user defined DBs are authenticated using this DB. It can be considered as heart of SQL Server.
+It holds **security** related information and it is very important DB from migration and security perspective. It holds **server level information** such DB users, Server logins, passwords, server level settings. All user defined DBs are authenticated using this DB. It can be considered as heart of SQL Server.
 - Model   
-It is like a template, which is used by SQL server. When user creates a DB SQL server internally creates a copy of Model DB and renames to the name given by user. 
+It is like a **template**, which is used by SQL server. When user creates a DB SQL server internally creates a copy of Model DB and renames to the name given by user. 
 - MSDB   
 Schedules used by or created for SQL Job Agent are managed and stored in MSDB. Developers can store/deploy their SSIS packages in MSDB.   
 - TempDB   
-It is used by SQL Server to handle/manage temp objects such as Temp Tables, snapshots, cursors etc.  
+It is used by SQL Server to handle/manage **temp objects** such as **Temp Tables, snapshots, cursors** etc.  
 - Resource DB   
-This is a hidden system DB. It holds all meta data and resource management info.
+This is a **hidden** system DB. It holds all **meta data** and **resource management info**.
 
 	
 		
@@ -97,6 +103,13 @@ STORE SQL CODE:
 - DDL
 DDL are used to create, alter, or drop any database objects
 	- CREATE
+	```sql
+	CREATE TABLE B32_Candidates
+	(
+	Candidate_ID NUMERIC(3,0),
+	Candidate_Name VARCHAR(100)
+	)
+	```
 	- ALTER
 	Can not change column name
 		- add constraints
@@ -115,7 +128,7 @@ DDL are used to create, alter, or drop any database objects
 	- DROP
 		```sql
 		ALTER TABLE client
-		DROP CONSTRAINT 
+		DROP CONSTRAINT FK_Sales_Clinet
 		```
 	- SELECT INTO
 		- DDL comman to create a table and optional data entry to it
@@ -178,6 +191,30 @@ DDL are used to create, alter, or drop any database objects
 			only **one** default value 
 				
 			- DATA TYPES (kind of)
+				- DataType procedure
+					1. user-defined data types (highest)
+					4. datetimeoffset
+					5. datetime2
+					6. datetime
+					7. smalldatetime
+					8. date
+					9. time
+					10. float
+					11. real
+					12. decimal
+					13. money
+					14. smallmoney
+					15. bigint
+					16. int
+					17. smallint
+					18. tinyint
+					19. bit
+					20. ntext
+					25. nvarchar (including nvarchar(max) )
+					26. nchar
+					27. varchar (including varchar(max) )
+					28. char
+30. binary (lowest)
 		- method to add constraint
 			1. create tables and add constraints later with ALTER
 			2. create tables and add constraints at same time
@@ -218,36 +255,74 @@ DDL are used to create, alter, or drop any database objects
 
 - DML
 	- DELETE
+	```sql
+	DELETE FROM B32_Candidates
+	WHERE Candidate_ID = 1 and Candidate_Name IS NULL
+	```
 	- INSERT
 	```sql
-	INSERT INTO TableWithDefault VALUES (1,'a', DEFAULT)
-	/*
-	Run to 
-	*/
-	INSERT INTO candidate VALUES(1,'a');
-	INSERT INTO candidate VALUES(2,'b');
-	INSERT INTO candidate VALUES(3,'c');
+	-- Method 1
+	INSERT INTO B32_Candidates VALUES
+	(1, 'Yiping'),
+	(2, 'Mounir'),
+	(3, 'Swornim')
+
+	-- Method 2 ( when run to ' ; ', it will end
+	INSERT INTO B32_Candidates VALUES (1, 'Yiping');
+	GO
+	INSERT INTO B32_Candidates VALUES ('A', 'Mounir');
+	GO
+	INSERT INTO B32_Candidates VALUES (3, 'Swornim')
+
+	-- Method 3 (this way the number of value can less than number of columns, the columns not show here will be NULL or default.
+	INSERT INTO B32_Candidates (Candidate_Name, Candidate_ID) VALUES ('Yiping', 1);
+
+		-- Not work because number not match
+		INSERT INTO B32_Candidates VALUES (1); 
+		
+		-- Work and if the not show columns can be NULL, and if so, the not show columns will be NULL
+		INSERT INTO B32_Candidates(Candidate_ID) VALUES (1); 
+
+	CREATE TABLE B32_Backup (ID INT, CName VARCHAR(100))
+
+	INSERT INTO B32_Backup
+	SELECT * FROM B32_Candidates
+
+	SELECT * FROM B32_Candidates
+	WHERE Candidate_ID = 1 and Candidate_Name IS NULL
+
 	```
-	   
-	```sql
-	/*
-	Run to ' ; ' will end. In this query, only insert (1,'a')
-	*/
-	INSERT INTO candidate VALUES(1,'a');
-	INSERT INTO candidate VALUES(2,'b');
-	INSERT INTO candidate VALUES(3,'c');
-	```
-	   
-	```sql
-	-- copy data from one to other
-	INSERT INTO db
-	SELECT * FROM DB2;
 
 
 
-	
+		
 	- UPDATE
+	```sql
+	UPDATE B32_Candidates
+	SET Candidate_Name = 'May'
+
+	 CREATE TABLE Salary (ID INT, CName VARCHAR(10), Salary INT)
+
+	INSERT INTO Salary VALUES
+	(1, 'Yiping', 25000),
+	(2, 'Mounir', 45000),
+	(3, 'Swornim', 40000)
+
+	SELECT * FROM Salary
+
+	UPDATE Salary
+	SET Salary = Salary*1.05
+
+	UPDATE Salary
+	SET Salary = Salary+(5/100)*Salary
+
+	UPDATE Salary
+	SET Salary += 0.05*Salary
+	```
 	- TRUNCATE
+	```sql
+	TRUNCATE TABLE B32_Candidates
+	```
 
 	```
 	- INSERT INTO
@@ -287,11 +362,12 @@ Data query language
 	- GROUP BY
 		- use to show distinct values
 		- NULLs are considered as same in GROUP BY
+		- SELECT with group by, the columsn must be part of GROUP BY clause or aggregate functions
 
 	- HAVING
-		- Filter groups
+		- Filter groups with conditions (must be able to compare)
 		- Data is fultered in buffer after all required data is pulled
-		- Commonly use with a group by clause
+		- Commonly use with a group by clause, but can use without GROUP BY
 		- After group by in logical order
 		- Use columns in group by clause or aggregate funtion
 		
@@ -301,6 +377,10 @@ Data query language
 		- Use as less as possible for save resource
 		- Default in ASC; DESC can be use
 		- ORDER BY 1 (sort in the first column) (not recommend because databse can be edit)
+		- The columns order in GROUP BY will not have any affect the result set
+		- Be used in 2 scenarios:
+			- Find duplicate
+			- Get distinct 
 	- AS   
 	Following kind of code might cuase issues
 		- only can be used in SELECT, FROM
@@ -345,7 +425,16 @@ Data query language
 	for like, SQL server cannot use index efficiently and thus for some case will use all records to compare if there is % at first, is not an efficient way
 		- use to string
 		- use to number
+		```sql
+		SELECT *
+		FROM TestWC
+		WHERE TotalDue NOT LIKE  '%.00'
+		```
 		- use to date (not recommanded)
+		```sql
+		SELECT HireDate
+		FROM Employee
+		WHERE HireDate LIKE '2009%'
 
 	- wild card
 		- %
@@ -379,6 +468,77 @@ Data query language
 	5. SELECT 
 	6. ORDER BY
 	
+	- Aggregate  
+		1. With GROUP BY, after GROUP BY clause (HAVING, SELECT, ORDER BY) have only in GROUP BY columns and AggF(columns)
+		2. Create derive column, should give name with AS alis
+		3. Can oly filtered in HAVING and not limited to only what in SELECT
+		4. What data types does aggregate functions support:
+		5. Aggregate funtion cannot be nested: Ex: MAX(SUM(Sales)) --this not work
+		6. AggF is not mandatory to be included in GROUP BY
+			- Numeric
+			- INT
+			- Float
+			- Money
+			- Real
+			- Date ( Can use AggF except SUM, AVG)
+			- String ( Can use AggF except SUM, AVG)
+		7. Can be used in ORDER BY clause but not recommanded (recommand to aggF in select and alias a name
+		```sql
+		-- Work but not recommand
+		SELECT SalesPersonID
+		FROM Sales.SalesOrderHeader H
+		GROUP BY SalesPersonID
+		ORDER BY SUM(TotalDue)
+
+		-- recommand
+		SELECT SalesPersonID, SUM(TotalDue) 'Total'
+		FROM Sales.SalesOrderHeader H
+		GROUP BY SalesPersonID
+		ORDER BY Total
+		```
+		```sql
+		-- in SELECT with out group by 
+		SELECT MAX(TotalDue) as 'Max sales'
+		FROM Sales;
+
+		-- in SELECT with GROUP BY and HAVING
+		SELECT custID, SUM(TotalDue)
+		FROM Sales
+		GROUP BY custID
+		HAVING SUM(TotalDue) > 5000
+		ORDER BY custID
+		```
+		- SUM
+		- MIN  
+		Can use ORDER BY and TOP to get the min and max result
+		- MAX
+		- AVG
+		- COUNT
+		COUNT is the only aggregate function that will not ignore NULL values. With null values, avg() and sum()/count() is not equal, the formal one is larger
+		- WITH
+		```SQL
+		```
+
+ 	- JOIN
+		- SELECT should indicate the the columns are in which table (mostly with ALIAS in FROM)
+		- Will not match NULL values at join
+		- Equal join
+		- Non-Equal Join  
+
+			AID > BID; AID < BID; AID < > BID
+		- Can use metadata sys.foreign keys to find relationships
+		```sql
+		SELECT T.names AS 'TABLE', C.name AS '
+		```
+		- Inner Join  
+		No matter table order
+		- Outer Join  
+		' a LEFT JOIN b' == ' b RIGHT JOIN a'
+			- LEFT JOIN  
+			'LEFT JOIN' AND 'LEFT OUTER JOIN' are same
+			- RIGHT JOIN
+		- Full Join
+		-
 
 
 
@@ -405,16 +565,17 @@ include the position about date zone
 		
 
 		
-db_test
+db\_test
 create two files:
-1. db_test.MDF
-2. db_test.LDF
+1. db\_test.MDF 
+
+2. db\_test.LDF
 	- log shipping
 	- improve only  perations for 
 	- helps in back up
 	- disastor recorvery
 
-DML, DDL --> db_test --> .LDF --> .MDF
+DML, DDL --> db\_test --> .LDF --> .MDF
 
 in delete, each delete will create one .LDF
 in truncate, only one or two .LDF (regarding to size)
@@ -494,3 +655,66 @@ INSERT INTO machineparts VALUES
 DELETE FROM machineparts
 ```
 
+# System Procedure
+
+```sql
+EXEC SP_HELPBD
+EXEC SP_WHO2
+```
+
+- SP\_WHO SP\_WHO2  
+for SP\_WHO OR  SP\_WHO2, there is 'blk by' columns means for a session, it is block(wait other session to run and finished) by other session number. Can find the session need to kill.
+
+- SP\_EXECUTESQL  
+```sql
+EXEC SP_EXECUTESQL N'SELECT * FROM Person'
+```
+Why? Use as dynamical execute query
+
+
+
+
+
+- SP\_LOCK
+- SP\_RENAME   
+rename column name
+```sql
+EXEC SP_RENAME 'Table','OldColumnName', 'NewColumnName'
+```
+
+- SP\_DEPENDS
+Find all tables depend (child table) on this table. Find what tables will be impact if change this table in structure change.
+
+ 
+
+# Exercise
+### LIKE
+```sql
+
+CREATE TABLE PERSON(
+PERID INT CONSTRAINT PK_PERSON_PerID PRIMARY KEY,
+PerName VARCHAR(25),
+SSN CHAR(9) CONSTRAINT CK_SSN CHECK ( SSN LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]')
+-- Using CHAR because if use number, it chould be start with 0
+EMAIL VHARCHAR(50)
+
+ALTER TABLE PERSON
+ADD CONSTRAINT CK_PerName CHECK (PerName LIKE '_____%,___%')
+ADD CONAT
+GO
+ALTER TABLE PERSON
+ADD CONSTRAINT CK_Email CHECK (EMAIL LIKE '_____%@___%.___%')
+
+--check invalid email for user name and rest are fine
+--unit test, check every thing as design
+INSERT INTO Person VALUES
+(2, 'Yue,li' '
+```
+### JOIN
+```sql
+
+```
+ TO be solved:
+ 	-MSDB
+	-Schreenshot TDP model P6 rules on google drive
+	-Cascade TDP model function
