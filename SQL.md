@@ -708,9 +708,26 @@ ADD CONSTRAINT CK_Email CHECK (EMAIL LIKE '_____%@___%.___%')
 --check invalid email for user name and rest are fine
 --unit test, check every thing as design
 INSERT INTO Person VALUES
-(2, 'Yue,li' '
+(2, 'Yue,li' ')
+
 ```
-### JOIN
+```sql
+SELECT PH.ProdHouse, 
+	CASE 
+		WHEN SUM(C.CollectionAmt)> SUM(M.Budget) THEN '2'
+		ELSE 0,
+		WHEN SUM(C.CollectionA
+(SUM(C.CollectionAmt)> SUM(M.Budget)) AS 'IsProfitable'
+FROM ProdHouse PH
+	LEFT JOIN MovieProd MP
+	ON PH.ProdHID = MP.ProdHID
+	JOIN Movie M
+	ON MP.MovieID = M.MovieID
+	JOIN Collections C
+	ON M.MovieID = C.MovieID
+WHERE ReleaseDate BETWEEN '2018-01-01' AND '2018-12-31'
+GROUP BY ProdHID, ProdHouse
+```
 ```sql
 
 ```
@@ -718,3 +735,5 @@ INSERT INTO Person VALUES
  	-MSDB
 	-Schreenshot TDP model P6 rules on google drive
 	-Cascade TDP model function
+
+
