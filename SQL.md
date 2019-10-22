@@ -106,7 +106,7 @@ DDL are used to create, alter, or drop any database objects
 	```sql
 	CREATE TABLE B32_Candidates
 	(
-	Candidate_ID NUMERIC(3,0),
+	Candidate_ID NUMERIC(3, 0),
 	Candidate_Name VARCHAR(100)
 	)
 	```
@@ -235,9 +235,9 @@ DDL are used to create, alter, or drop any database objects
 				qty INT DEFAULT 0,
 				total MONEY)
 				
-				INSERT INTO test VALUES (1,1,1, null,0)
+				INSERT INTO test VALUES (1, 1, 1, null, 0)
 
-				INSERT INTO test (salesID, prodID, clientID, Total)VALUES (2,1,1,0)
+				INSERT INTO test (salesID, prodID, clientID, Total)VALUES (2, 1, 1, 0)
 
 				```
 			3. create tables with contraints in different sentence
@@ -411,8 +411,8 @@ Data query language
 		
 	- IN	
 		```sql
-		MiddleName NOT IN ('A','B') --This will not includ NULL values in MiddleName
-		MiddleName IN ('A','B')
+		MiddleName NOT IN ('A', 'B') --This will not includ NULL values in MiddleName
+		MiddleName IN ('A', 'B')
 		-- the two reults cannot union to full set because cannot compare NULL with other values
 		MiddleName NOT IN ('A', 'B') OR MiddleName IS NULL
 		-- NULL cannot compare with eqaul or uneqaul
@@ -527,9 +527,46 @@ Data query language
 
 			AID > BID; AID < BID; AID < > BID
 		- Can use metadata sys.foreign keys to find relationships
-		```sql
-		SELECT T.names AS 'TABLE', C.name AS '
-		```
+		- Type
+			- INNER JOIN
+			- OUTER JOIN
+			Display every possible combination of all values in the designated / Cartesian product
+			- CROSS JOIN  
+				The following are derived not a real JOIN type
+				- Restricted Left/Right Outer  
+				Only unique left/right values (not match values)
+				```sql
+				-- Find movies without any reviews
+				-- Restricted Left Outer Join
+				SELECT *
+				FROM Moive M
+					LEFT JOIN Review R
+					ON R.MovieID = M.MovieID
+				WHERE R.MovieID IS NULL
+
+
+				```
+				- Self Join  
+				join a table to itself in some regard
+				```sql
+				/*
+				CREATE TABLE Eomployee(
+				EmpID INT PRIMARY KEY,
+				Name VARCHAR,
+				ManagerID INT
+				)
+
+				-- Find who do not manage anyone
+				SELECT E1.EmpID 'Manager", E1.Name "Manager Name" 
+				FROM Employee E1
+					LEFT JOIN Employee E2
+					ON E1.EmpID = E2.MangagerID
+					WHERE E2.EmpID is NULL
+
+				*/
+				```
+
+
 		- Inner Join  
 		No matter table order
 		- Outer Join  
@@ -538,7 +575,13 @@ Data query language
 			'LEFT JOIN' AND 'LEFT OUTER JOIN' are same
 			- RIGHT JOIN
 		- Full Join
-		-
+
+		Exercise:
+		Find records in table A which are not available in B
+		Methods:
+		1. OUTER JOINS (The best way, best performance)
+		2. Sub queries
+		3. Set operator
 
 
 
@@ -546,7 +589,7 @@ Data query language
 The right datatype will imporve the performance
 - String
 - NUMBERIC
-NUMBERIC(8,2) ~999999.99
+NUMBERIC(8, 2) ~999999.99
 - FLOAT(N)
 Will round at the end
 - REAL
@@ -623,6 +666,7 @@ CREATE TABLE parts
 (partID SMALLINT NOT NULL,
 part VHARCHAR(100) NOT NULL,
 partcat VHARCHAR(100),
+-- Define the unique with CLUSTERED INDEX`
 CONSTRAINT uk_parts_partID UNIQUE CLUSTERED(partID)
 )
 GO
@@ -650,7 +694,7 @@ INSERT INTO parts VALUES
 
 GO
 INSERT INTO machineparts VALUES
-(1,101)
+(1, 101)
 
 DELETE FROM machineparts
 ```
@@ -679,7 +723,7 @@ Why? Use as dynamical execute query
 - SP\_RENAME   
 rename column name
 ```sql
-EXEC SP_RENAME 'Table','OldColumnName', 'NewColumnName'
+EXEC SP_RENAME 'Table', 'OldColumnName', 'NewColumnName'
 ```
 
 - SP\_DEPENDS
@@ -699,7 +743,7 @@ SSN CHAR(9) CONSTRAINT CK_SSN CHECK ( SSN LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0
 EMAIL VHARCHAR(50)
 
 ALTER TABLE PERSON
-ADD CONSTRAINT CK_PerName CHECK (PerName LIKE '_____%,___%')
+ADD CONSTRAINT CK_PerName CHECK (PerName LIKE '_____%, ___%')
 ADD CONAT
 GO
 ALTER TABLE PERSON
@@ -708,7 +752,7 @@ ADD CONSTRAINT CK_Email CHECK (EMAIL LIKE '_____%@___%.___%')
 --check invalid email for user name and rest are fine
 --unit test, check every thing as design
 INSERT INTO Person VALUES
-(2, 'Yue,li' ')
+(2, 'Yue, li' ')
 
 ```
 ```sql
@@ -727,13 +771,21 @@ FROM ProdHouse PH
 	ON M.MovieID = C.MovieID
 WHERE ReleaseDate BETWEEN '2018-01-01' AND '2018-12-31'
 GROUP BY ProdHID, ProdHouse
-```
-```sql
 
 ```
  TO be solved:
  	-MSDB
 	-Schreenshot TDP model P6 rules on google drive
 	-Cascade TDP model function
+	- Difference between PK and FK
 
 
+SELECT COUNT(DISTICNT GenreCode)
+FROM Genre
+
+SELECT PH.ProdHouse
+FROM ProdHouse PH
+	JOIN MovieProd
+	JOIN Movie M
+
+ON 
