@@ -75,7 +75,7 @@ It holds **security** related information and it is very important DB from migra
 - Model   
 It is like a **template**, which is used by SQL server. When user creates a DB SQL server internally creates a copy of Model DB and renames to the name given by user. 
 - MSDB   
-Schedules used by or created for SQL Job Agent are managed and stored in MSDB. Developers can store/deploy their SSIS packages in MSDB.   
+**Schedules** used by or created for **SQL Job Agent** are **managed** and stored in MSDB. Developers can **store/deploy** their **SSIS** packages in MSDB.   
 - TempDB   
 It is used by SQL Server to handle/manage **temp objects** such as **Temp Tables, snapshots, cursors** etc.  
 - Resource DB   
@@ -190,31 +190,7 @@ DDL are used to create, alter, or drop any database objects
 			- DEFAULT  
 			only **one** default value 
 				
-			- DATA TYPES (kind of)
-				- DataType procedure
-					1. user-defined data types (highest)
-					4. datetimeoffset
-					5. datetime2
-					6. datetime
-					7. smalldatetime
-					8. date
-					9. time
-					10. float
-					11. real
-					12. decimal
-					13. money
-					14. smallmoney
-					15. bigint
-					16. int
-					17. smallint
-					18. tinyint
-					19. bit
-					20. ntext
-					25. nvarchar (including nvarchar(max) )
-					26. nchar
-					27. varchar (including varchar(max) )
-					28. char
-30. binary (lowest)
+
 		- method to add constraint
 			1. create tables and add constraints later with ALTER
 			2. create tables and add constraints at same time
@@ -319,13 +295,16 @@ DDL are used to create, alter, or drop any database objects
 	UPDATE Salary
 	SET Salary += 0.05*Salary
 	```
+
 	- TRUNCATE
+![Different between delete and truncate](Pictures/SQL/Diff_Del-Trun.JPG) 
 	```sql
 	TRUNCATE TABLE B32_Candidates
 	```
 
 	```
 	- INSERT INTO
+![Different between SELECT INTO and INSERT INTO](Pictures/SQL/Diff_SelectInto-Insert.JPG) 
 		- copies data into a existing table
 	```sqlserver
 	INTERT INTO newtale
@@ -370,7 +349,7 @@ Data query language
 		- Commonly use with a group by clause, but can use without GROUP BY
 		- After group by in logical order
 		- Use columns in group by clause or aggregate funtion
-		
+![different between where and having](Pictures/SQL/Diff_Where-Having1.JPG) 		
 	- ORDER BY
 		- It is the only that guarantees a result set which sorted other wise the data is not guaranteed to be displayed  in sorted order
 		- run after SELECT (so can and the only one clause use alias name in SELECT)
@@ -604,7 +583,60 @@ include the position about date zone
 - USER DEFINED DATA TYPE
 - DATE  
 	'02/29/1961' as date will get erro because SQL will automatic convert string to date. This date is not exsist and thus cannot successfully internal convert to date.
-	
+
+|Category|Data Type|Size|Max Val|
+|--------|---------|----|------|
+String|
+|CHAR|1 Byte Per Char|8000 CHARS|
+|VARCHAR|1 Byte Per Char|8000 CHARS|
+|NCHAR|2 Byte Per Char|4000 CHARS|
+|NVARCHAR|2 Byte Per Char|4000 CHARS|
+|NVARCHAR(MAX)|2147483648 (2 GB)|1073741824 CHARS|
+|VARCHAR(MAX)|2147483648 (2 GB)|2147483648 CHARS|
+Number|
+|TINY INT|1|0-255|
+|SMALL INT|2|
+|INT|4|
+|BIG INT|8|
+|NUMERIC(P,S)|5, 9, 13, 17|
+|FLOAT(N)|4,8|
+|REAL|4|
+|MONEY|8|
+|SMALL MONEY|4|
+|BIT*|1 BIT|0/1|
+Date|
+|DATE|3|
+|DATETIME|8|
+|DATETIME2|6,7,8|
+|DATETIMEOFFSET|10|
+|SMALL DATETIME|4|
+|TIME|5|
+
+
+### DataType procedure
+1. user-defined data types (highest)
+4. datetimeoffset
+5. datetime2
+6. datetime
+7. smalldatetime
+8. date
+9. time
+10. float
+11. real
+12. decimal
+13. money
+14. smallmoney
+15. bigint
+16. int
+17. smallint
+18. tinyint
+19. bit
+20. ntext
+25. nvarchar (including nvarchar(max) )
+26. nchar
+27. varchar (including varchar(max) )
+28. char
+3
 		
 
 		
@@ -623,23 +655,126 @@ DML, DDL --> db\_test --> .LDF --> .MDF
 in delete, each delete will create one .LDF
 in truncate, only one or two .LDF (regarding to size)
 
+## Functions
+
+- Cateory
+	- System
+	- User
+- Date functions
+	- DATEADD(interval, number, date)
+	- DATEDIFF(interval, date1, date2)
+	```sql
+	SELECT DATEDIFF(YY,'2019-12-31','2017-12-21') 'Date diff inYears',
+	DATEDIFF(MM,'2015-8-16','2017-12-21') 'Date diff in Months',
+	DATEDIFF(DD,'2015-8-16','2017-12-21') 'Date diff in Days',
+	DATEADD(MM,12,GETDATE()) 'Adding Months',
+	DATEADD(YY,-2,GETDATE()) 'Adding -ve Years'
+	```
+	- DATEFROMPARTS(year, month, day)
+	```sql
+	--SQL Server 2012 and later versions
+	SELECT DATEFROMPARTS(2012,2,28) 'Date from Parts'
+	--DATETIMEFROMPARTS, SMALLDATETIMEFROMPARTS
+	```
+	- DATENAME(interval, date)
+	- DATEPART(interval, date)
+	```sql
+	DATENAME(MONTH, DemoDate) 'Month Name',
+	DATENAME(DD, DemoDate) 'Day of Month',
+	DATENAME(WEEKDAY, DemoDate) 'Name of Day',
+	DATENAME(DY, DemoDate) 'Day of Year',
+	DATEPART(M, DemoDate) 'Month of Year',
+	DATEPART(MI, DemoDate) 'Minutes of DateTime',
+	DATEPART(WEEK, DemoDate) 'Week of the Year',
+	```
+	- DAY(date)
+	- MONTH(date)
+	- YEAR(date)
+	```sql
+	SELECT DemoDate 'Current Date',
+	DAY(DemoDate) 'Day from Date',
+	MONTH(DemoDate) 'Month from Date',
+	YEAR(DemoDate) 'Year from Date'
+	FROM DateFnDemo
+	```
+	- GETDATE()
+	- GETUTCDATE()
+	- SYSDATETIME()
+	- ISDATE(expression)
+	```sql
+	SELECT
+	ISDATE('2015-8-31') 'Validation Correct',
+	ISDATE('2015-2-35') 'Validation Wrong'
+	--SQL Server 2012 and later
+	SELECT EOMONTH ('2015-8-16'), EOMONTH ('2015-8-16',-1)
+
+	SELECT EOMONTH (GETDATE(), 12)
+	--Gives the datetime value of server
+	SELECT SYSDATETIME(), GETDATE()
+	```
+	- EOMONTH ( start_date [, month_to_add ] )  
+	```sql
+	DECLARE @date DATETIME = GETDATE();
+	SELECT EOMONTH ( @date ) AS 'This Month';
+	SELECT EOMONTH ( @date, 1 ) AS 'Next Month';
+	SELECT EOMONTH ( @date, -1 ) AS 'Last Month';
+	```
+### Exercise
+```sql
+
+--Find Employees who are retiring on Weekend assuming age of retirement is 60
+--Using DATENAME function
+SELECT BusinessEntityID, BirthDate, DATENAME(WEEKDAY, DATEADD(YY, 60, BirthDate)) 'Day of Retiring'
+FROM AdventureWorks2012.HumanResources.Employee
+WHERE DATENAME(WEEKDAY, DATEADD(YY, 60, BirthDate)) IN ('Saturday','Sunday')
+--Using DATEPART function
+SELECT BusinessEntityID, BirthDate, DATENAME(WEEKDAY, DATEADD(YY, 60, BirthDate)) 'Day of Retiring'
+FROM AdventureWorks2012.HumanResources.Employee
+WHERE DATEPART(WEEKDAY, DATEADD(YY, 60, BirthDate)) IN (1, 7)
+
+--People hired on Monday
+SELECT *
+FROM AdventureWorks2012.HumanResources.Employee
+WHERE DATENAME(WEEKDAY, HireDate) = 'Monday'
+```	
 		
 
-# Research Questions
-1. Can you add a column in between existing columns.
-	Default will add at the end
-	EX. col1, col2, col3, ...etc. Can add like a col10 between col2 and col3.
-	Answer: In MySQL, could
-	``` SQL
-	DROP TABLE IF EXISTS 'test';
+- Conversion Functions  
+	- CAST - It is universal, that means it is available in most of the databases such as Oracle, MySQL
+	- CONVERT - Convert uses style parameter, it is a variation of CAST developed by MS
+```sql
+SELECT CAST('01/01/2017' AS DATE)
+SELECT CAST('01/33/2017' AS DATE)
+SELECT CONVERT(DATE, '01/01/2017')
 
-	CREATE TABLE 'test' (
-	'a' int NOT NULL,
-	'b' varchar NOT NULL
-	) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+SELECT BusinessEntityID, HireDate, JobTitle,
+CONVERT(VARCHAR(100), BirthDate, 107), CONVERT(VARCHAR(100), BirthDate, 7)
+FROM HumanResources.Employee
 
-	ALTER TABLE test ADD COLUMN c INT AFTER* a
-	```
+-- User try can avoid stop when have error when running
+SELECT TRY_CAST('01/33/2017' AS DATE)
+
+CREATE TABLE COnversionFNs 
+(BDay VARCHAR(25))
+GO
+
+INSERT INTO COnversionFNs values
+('01/15/2018'),('02/29/2019'),('05/15/2016'),('09/31/2019'),('2/15/2018')
+
+-- Use WHERE to avoid stop, same usage as TRY. Both are not good
+SELECT * FROM COnversionFNs
+WHERE ISDATE(BDay) = 1
+
+SELECT * FROM COnversionFNs
+WHERE TRY_CAST(BDay AS DATE) IS NOT NULL
+
+SELECT *, CAST(BDay AS DATE)  
+FROM COnversionFNs
+
+SELECT BusinessEntityID, HireDate, JobTitle,
+TRY_CONVERT(VARCHAR(100), BirthDate, 117)
+FROM HumanResources.Employee
+```
 	
 ## Parent child
  - DELETE child first then DELETE parent
@@ -700,20 +835,64 @@ DELETE FROM machineparts
 ```
 
 # System Procedure
+- Important
+Retrieves the info about an object  
+	- EXEC SP_HELP '[dbo].[uspGetBillOfMaterials]'
+	- --Gives out the definition of the user defined objects and system objects (Not for table and system functions)
+	- EXEC SP_HELPTEXT '[dbo].[uspGetBillOfMaterials]'
+	- EXEC SP_HELPTEXT 'SP_HELP'
+	- EXEC SP_HELPTEXT '[HumanResources].[Employee]'
+	- EXEC SP_HELPTEXT '[dbo].[fnExtCharIndex]'
+	- --Provides info about a specified database or all the databases (DB name is optional)
+	- EXEC SP_HELPDB 'Training_SQL'
+	- EXEC SP_HELPDB 'AdventureWorks2012'
+	- EXEC SP_WHO2
+	- EXEC SP_WHO
+	- EXEC SP_EXECUTESQL N'SELECT * FROM Person'
+	```sql
+	EXEC SP_EXECUTESQL N'SELECT * FROM Person'
+	```
+	Why? Use as dynamical execute query
+	- EXEC SP_LOCK
+	- EXEC SP_RENAME 'B27_ColumnName.newid', 'ID', 'COLUMN';
+	- EXEC SP_RENAMEDB 'Training_SQL', 'Training_SQL2'
+	- --What are the different objects that depend on a given object
+	- EXEC SP_DEPENDS '[dbo].[uspGetBillOfMaterials]'
 
-```sql
-EXEC SP_HELPBD
-EXEC SP_WHO2
-```
+- Good to remember
+	- EXEC SP_WHO 'ACTIVE' --login' | session ID | 'ACTIVE'
+	- EXEC SP_ADDTYPE PhoneNo, 'varchar(13)', 'NOT NULL'
+	- EXEC SP_DROPTYPE 
+	- EXEC SP_COLUMNS 'Emp'
+	- --Provides info about indexes on a Table or View
+	- EXEC SP_HELPINDEX '[HumanResources].[Employee]'
+	- --To attch .df, .ldf and .ndf files to a server instance
+	- EXEC SP_ATTACH_DB @dbname=  'AdventureWorks2008', @filename1= 'C:\.........'
+	- EXEC SP_DETACH_DB
+	- --Provides the info about the files associated to DB .mdf, .ldf, .ndf
+	- EXEC SP_HELPFILE
+	- --Provides the information about language, months, days, start of the week
+	- EXEC SP_HELPLANGUAGE English;
+	- EXEC SP_HELPSERVER
+	- EXEC SP_HELPSORT
+	- EXEC SP_BINDRULE
+	- EXEC SP_UNBINDRULE
+	- EXEC SP_HELPTRIGGER '[Person].[Password]'
+	- EXEC SP_SPACEUSED 'Employee'
+
+- Some more research
+	- EXEC SP_CONFIGURE
+
+- Gives the info of all the constraints on a given object
+	- EXEC SP_HELPCONSTRAINT 'HumanResources.Employee'
+	```sql
+	EXEC SP_HELPBD
+	EXEC SP_WHO2
+	```
 
 - SP\_WHO SP\_WHO2  
 for SP\_WHO OR  SP\_WHO2, there is 'blk by' columns means for a session, it is block(wait other session to run and finished) by other session number. Can find the session need to kill.
 
-- SP\_EXECUTESQL  
-```sql
-EXEC SP_EXECUTESQL N'SELECT * FROM Person'
-```
-Why? Use as dynamical execute query
 
 
 
@@ -774,7 +953,6 @@ GROUP BY ProdHID, ProdHouse
 
 ```
  TO be solved:
- 	-MSDB
 	-Schreenshot TDP model P6 rules on google drive
 	-Cascade TDP model function
 	- Difference between PK and FK
@@ -789,3 +967,18 @@ FROM ProdHouse PH
 	JOIN Movie M
 
 ON 
+# Research Questions
+1. Can you add a column in between existing columns.
+	Default will add at the end
+	EX. col1, col2, col3, ...etc. Can add like a col10 between col2 and col3.
+	Answer: In MySQL, could
+	``` SQL
+	DROP TABLE IF EXISTS 'test';
+
+	CREATE TABLE 'test' (
+	'a' int NOT NULL,
+	'b' varchar NOT NULL
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+	ALTER TABLE test ADD COLUMN c INT AFTER* a
+	```

@@ -8,6 +8,7 @@
 - derived attribute  
 
 ## Requirment session: 
+![Docs-Type](Pictures/Data_Modeling/Docs-Types.JPG) 
 1. JDR (Joint Requirment Definition)  
 - output:Business Required Document - BRD 
 	Also some organizations call the same as 1.1 Scope Statement Specification
@@ -103,6 +104,7 @@
 ### How Methodologies:
 Methodologies: Step by step process to execute an application
 - Waterfall  
+![SDLC-Waterfall](Pictures/Data_Modeling/SDLC-Waterfall.JPG) 
 	- Gather complete REQ (not flexible, time sensitive, Not visibility, cannot add new requirment later)
 	- Steps: 
 		1. RequirmentAnalysis
@@ -111,7 +113,8 @@ Methodologies: Step by step process to execute an application
 		4. Testing
 		5. Deployment
 		6. Maintenance
-		7. - Agile (Parallel)  
+- Agile (Parallel)  
+![Agile](Pictures/Data_Modeling/SDLC-Agile.JPG) 
 	Not a specific method. It's a principle , guide lines, or rules
 	1. Work is divided into **sprints**
 		short -small ,portion of work developed at a fast pace ( < 4 weeks)
@@ -119,12 +122,14 @@ Methodologies: Step by step process to execute an application
 	3. Each sprint provides **usable** delivery which improves **visibility** to users
 	4. Because of earlier visibility to user, we can incorporate user **feedback**
 - Scrum(one kind of Agile)
+![ScrumCycle](Pictures/Data_Modeling/ScrumCycle.png) 
 	- Meetings:
 		1. Sprint plan(Begining of the sprint,prepare and plan the sprint, set sprint goal and sprint backlog)
 		2. Daliy scrum(what did you do yesterday? What will you do today? Are there any obstacles? Every day)
 		3. Sprint review(users reviews, demo features, updated backlog)
 		4. Restrospective(Do not have user, try to solve and avoid wrongs with team number, identify ways of improving, end of sprint)
 		5. Product backlog grooming(Clarify product backlog items in preparation for sprint planning, before sprint planning)
+![ScrumMeetings](Pictures/Data_Modeling/ScrumMeetings.png) 
 	- Roles:  
 		1. product owner (Part A)  
 			- Gather user stories related to the project (product backlog)
@@ -136,6 +141,7 @@ Methodologies: Step by step process to execute an application
 			3. any road blockes
 		3. scrum team
 	- Spiral  
+![SDLC-SpiralModel](Pictures/Data_Modeling/SDLC-SpiralModel.JPG) 
 		For every long and complex projects  
 		Waterfull manytimes  
 		1. Identification  
@@ -153,6 +159,7 @@ Methodologies: Step by step process to execute an application
 
 
 ## Data Modeling Life Cycle
+![Thing to do in each Phases ](Pictures/Data_Modeling/Phases.JPG) 
 1. Conceptual  
 	1. Purpose of the whole database
 	2. What information is required out of this model
@@ -351,6 +358,7 @@ Number of entities involved in a relationship
 		Relationship:
 			one -- Many
 			Optional -- Mandatory
+![CHens-CrosFeet](Pictures/Data_Modeling/CHens-CrosFeet.JPG) 
 
 ## Reverse Engineering
 	Reverse Engineering - It is a process of taking an existing physical database structure into a logical model, to make some structural changes in the model for supporting new business rules, or to support growing business.
