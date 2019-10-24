@@ -130,11 +130,14 @@ DDL are used to create, alter, or drop any database objects
 		ALTER TABLE client
 		DROP CONSTRAINT FK_Sales_Clinet
 		```
+	<a id="selectinto"></a>
 	- SELECT INTO
+
 		- DDL comman to create a table and optional data entry to it
 		- copies data from existing tables and can insert them to newly created table in the same syntax.
 		- Can copy across databases with 3 part naming: DB.SCHEMA.OBJECT 
 		- Can derive new columns and change columns names
+		- [Different between SELECT INTO and INSERT INTO](#dsi)  
 		 (4 part naming: LinkedServer.DB.SHEMA.OBJECT)
 		 ```sql
 		 SELECT * INTO Emplyee
@@ -230,12 +233,24 @@ DDL are used to create, alter, or drop any database objects
 				```
 
 - DML
+	<a id = "delete"></a>
 	- DELETE
+		- [Difference between DELETE and TRUNCATE](#ddt)
 	```sql
 	DELETE FROM B32_Candidates
 	WHERE Candidate_ID = 1 and Candidate_Name IS NULL
 	```
+	<a id = "insertinto"></a>
 	- INSERT
+	<a id="insertinto"></a>
+	- INSERT INTO 
+		- copies data into a existing table  
+		- [Different between SELECT INTO and INSERT INTO](#dsi)  
+
+	<a id="dsi"></a>
+	![Different between SELECT INTO and INSERT INTO](Pictures/SQL/Diff_SelectInto-Insert.JPG) 
+	Return to [SELECT INTO](#selectinto), [INSERT INTO](#insertinto)    
+
 	```sql
 	-- Method 1
 	INSERT INTO B32_Candidates VALUES
@@ -296,15 +311,25 @@ DDL are used to create, alter, or drop any database objects
 	SET Salary += 0.05*Salary
 	```
 
+	<a id = "truncate"></a>
 	- TRUNCATE
+		- [Difference between DELETE and TRUNCATE](#ddt)
+	<a id = "ddt"></a>
 ![Different between delete and truncate](Pictures/SQL/Diff_Del-Trun.JPG) 
+Return to [DELETE](#delete),[TRUNCATE](#truncate)
 	```sql
 	TRUNCATE TABLE B32_Candidates
 	```
 
-	- INSERT INTO
-![Different between SELECT INTO and INSERT INTO](Pictures/SQL/Diff_SelectInto-Insert.JPG) 
+	<a id="insertinto"></a>
+	- INSERT INTO 
 		- copies data into a existing table  
+		- [Different between SELECT INTO and INSERT INTO](#dsi)  
+
+<a id="dsi"></a>
+![Different between SELECT INTO and INSERT INTO](Pictures/SQL/Diff_SelectInto-Insert.JPG) 
+Return to [SELECT INTO](#selectinto), [INSERT INTO](#insertinto)  
+
 	```sql
 	INSERT INTO newtale
 	SELECT *
@@ -334,6 +359,7 @@ Data query language
 		```
 
 	- FROM
+	<a id = "where"></a>
 	- WHERE
 		- row filters
 		- logical operators: AND, OR, NOT, BETWEEN, IN
@@ -345,18 +371,23 @@ Data query language
 			1. ~ (bitwise NOT)
 			2. 
 		- The most clear mothed is to use () brackets
+		- [Difference between WHERE and HAVING](#dwh)
 	- GROUP BY
 		- use to show distinct values
 		- NULLs are considered as same in GROUP BY
 		- SELECT with group by, the columsn must be part of GROUP BY clause or aggregate functions
 
+	<a id = "having"></a>
 	- HAVING
 		- Filter groups with conditions (must be able to compare)
 		- Data is fultered in buffer after all required data is pulled
 		- Commonly use with a group by clause, but can use without GROUP BY
 		- After group by in logical order
 		- Use columns in group by clause or aggregate funtion
+		- [Difference between WHERE and HAVING](#dwh)
+<a id = "dwh"></a>
 ![different between where and having](Pictures/SQL/Diff_Where-Having1.JPG) 		
+Return to [WHERE](#where), [HAVING](#having)
 	- ORDER BY
 		- It is the only that guarantees a result set which sorted other wise the data is not guaranteed to be displayed  in sorted order
 		- run after SELECT (so can and the only one clause use alias name in SELECT)
