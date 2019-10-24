@@ -302,18 +302,25 @@ DDL are used to create, alter, or drop any database objects
 	TRUNCATE TABLE B32_Candidates
 	```
 
-	```
 	- INSERT INTO
 ![Different between SELECT INTO and INSERT INTO](Pictures/SQL/Diff_SelectInto-Insert.JPG) 
-		- copies data into a existing table
-	```sqlserver
-	INTERT INTO newtale
+		- copies data into a existing table  
+	```sql
+	INSERT INTO newtale
 	SELECT *
 	FROM oldtable
 	```
 		
 - DQL
 Data query language
+	- Precedence   
+	The order is following:  
+	1. FROM
+	2. WHERE
+	3. GROUP BY
+	4. HAVING
+	5. SELECT 
+	6. ORDER BY
 	- SELECT  
 		- Filter columns in SELECT statement
 		- Column expressions in SELECT
@@ -415,14 +422,15 @@ Data query language
 		FROM Employee
 		WHERE HireDate LIKE '2009%'
 
-	- wild card
+	- Wild Card  
+	A wildcard character is used to substitute one or more characters in a string.
 		- %
 		- ^ (carat) or ! (not)
-		- [] 
+		- [] (Square brackets)
 			- ( LIKE '[afs]%', 
 			- [a-m]% , 
 			- [a-M-]% the last one will inclueded ' - ')
-		- _  ( stands for any 1 charactor)
+		- _  ( Underline, stands for any 1 charactor)
 		- ESCAPE change the charactor sel meaning
 		Can sign any un special character as ESCAPE charactor
 		```sql
@@ -438,21 +446,13 @@ Data query language
 		
 		```
 
-	- Precedence   
-	The order is following:  
-	1. FROM
-	2. WHERE
-	3. GROUP BY
-	4. HAVING
-	5. SELECT 
-	6. ORDER BY
 	
 	- Aggregate  
 		1. With GROUP BY, after GROUP BY clause (HAVING, SELECT, ORDER BY) have only in GROUP BY columns and AggF(columns)
 		2. Create derive column, should give name with AS alis
 		3. Can oly filtered in HAVING and not limited to only what in SELECT
 		4. What data types does aggregate functions support:
-		5. Aggregate funtion cannot be nested: Ex: MAX(SUM(Sales)) --this not work
+		5. Aggregate funtion cannot be **nested**: Ex: MAX(SUM(Sales)) --this not work
 		6. AggF is not mandatory to be included in GROUP BY
 			- Numeric
 			- INT
@@ -660,7 +660,8 @@ in truncate, only one or two .LDF (regarding to size)
 - Cateory
 	- System
 	- User
-- Date functions
+- Date functions  
+Can be nested
 	- DATEADD(interval, number, date)
 	- DATEDIFF(interval, date1, date2)
 	```sql
@@ -669,6 +670,8 @@ in truncate, only one or two .LDF (regarding to size)
 	DATEDIFF(DD,'2015-8-16','2017-12-21') 'Date diff in Days',
 	DATEADD(MM,12,GETDATE()) 'Adding Months',
 	DATEADD(YY,-2,GETDATE()) 'Adding -ve Years'
+	-- This add 10 days to the current day. Only add on days
+	SELECT GETDATE() + 10
 	```
 	- DATEFROMPARTS(year, month, day)
 	```sql
@@ -712,16 +715,53 @@ in truncate, only one or two .LDF (regarding to size)
 	--Gives the datetime value of server
 	SELECT SYSDATETIME(), GETDATE()
 	```
-	- EOMONTH ( start_date [, month_to_add ] )  
+	- EOMONTH ( StartDate [, MonthToAdd ] )  
 	```sql
 	DECLARE @date DATETIME = GETDATE();
 	SELECT EOMONTH ( @date ) AS 'This Month';
 	SELECT EOMONTH ( @date, 1 ) AS 'Next Month';
 	SELECT EOMONTH ( @date, -1 ) AS 'Last Month';
 	```
+- String Function  
+Can be nested
+	- LEN()  
+	Will count the space before the last non character but not space after the last non-space charactor
+	- UPPER()
+	- LOWER()
+	- LTRIM()
+	- RTRIM() RTRIM( LTRIM() )
+	- CONCAT() 
+	- Difference between CONCAT() and +
+		1.  ++ will return NULL if any is NULL; CONCAT() will ignore NULL and retur other values
+		2. ++ can not plus number and string (should conversion number to string first); CONCAT() will automatically convert number to string
+	- SUBSTRING(string, start position, number of charactors)
+	- LEFT(string, number of charactor to be sub)  
+	From left
+	- RIGHT (String, number of charactor to be sub)  
+	From right
+	- REPLACE(String, OldString, NewString)
+	```sql
+	-- number of apperances of character(s)
+	SELECT LEN('RAJA') - LEN( REPLACE('RAJA', 'A',''))
+	```
+	- CHARINDEX(charactor to be find, string, start position (optional,this position is included)  
+	Return the first appearance of a character in string, if cannot find, return 0, will count space. If the start position is <= 0, looks as 0 to find from all;
+	CHARINDEX('P',PerFName)  
+	Return the index location (start with 1) of  
+	```sql
+	-- Find the second apperance of a character
+	CHARINDEX('P', string, CHARINDEX('P', string)+1)
+	```
+	- PARTINDEX(pattern, string)  
+	Return the index of a pattern; Can use wild card
+	- RVERSE(string)
+	- REPLICATE(repeat string, times of repeat)
+	- ASCII(character)  
+	IF more than 2 characters, only return the ASCII value of 1st one
+	- CHAR(ASCII value)
+	- STUFF(string, start, length, NewString) 
 ### Exercise
 ```sql
-
 --Find Employees who are retiring on Weekend assuming age of retirement is 60
 --Using DATENAME function
 SELECT BusinessEntityID, BirthDate, DATENAME(WEEKDAY, DATEADD(YY, 60, BirthDate)) 'Day of Retiring'
@@ -956,6 +996,7 @@ GROUP BY ProdHID, ProdHouse
 	-Schreenshot TDP model P6 rules on google drive
 	-Cascade TDP model function
 	- Difference between PK and FK
+	- WITH clause
 
 
 SELECT COUNT(DISTICNT GenreCode)
