@@ -1,3 +1,6 @@
+[TOC]
+# SQL server enviroment and concepts
+
 ## Why use SQL server?
 1. Security
 2. Parallel access
@@ -99,102 +102,96 @@ STORE SQL CODE:
 - FUNCTIONS
 - TRIGGERS
 
-## Query
-- DDL
+# Query
+## DDL
 DDL are used to create, alter, or drop any database objects
 	- CREATE
-	```sql
-	CREATE TABLE B32_Candidates
-	(
-	Candidate_ID NUMERIC(3, 0),
-	Candidate_Name VARCHAR(100)
-	)
-	```
-	- ALTER
-	Can not change column name
-		- add constraints
-		```sql
-		ALTER TABLE sales
-		ALTER COLUMN salseID INT NOT NULL;
+```sql
+CREATE TABLE B32_Candidates
+(
+Candidate_ID NUMERIC(3, 0),
+Candidate_Name VARCHAR(100)
+)
+```
+- ALTER
+Can not change column name
+- add constraints
+```sql
+ALTER TABLE sales
+ALTER COLUMN salseID INT NOT NULL;
 
-		ALTER TABLE sales
-		ADD CONSTRAINT pk_sales PRIMARY KEY (SalesID)
-		
+ALTER TABLE sales
+ADD CONSTRAINT pk_sales PRIMARY KEY (SalesID)
 
-		ALTER TABLE sales
-		ADD CONSTRAINT fk_sales_clinet FOREIGN KEY (clientID) REFERENCES client(clientID)
-
-		```
-	- DROP
-		```sql
-		ALTER TABLE client
-		DROP CONSTRAINT FK_Sales_Clinet
-		```
-	<a id="selectinto"></a>
-	- SELECT INTO
-
-		- DDL comman to create a table and optional data entry to it
-		- copies data from existing tables and can insert them to newly created table in the same syntax.
-		- Can copy across databases with 3 part naming: DB.SCHEMA.OBJECT 
-		- Can derive new columns and change columns names
-		- [Different between SELECT INTO and INSERT INTO](#dsi)  
-		 (4 part naming: LinkedServer.DB.SHEMA.OBJECT)
-		 ```sql
-		 SELECT * INTO Emplyee
-		 FROM advanworks.humanresource.employee
+ALTER TABLE sales
+ADD CONSTRAINT fk_sales_clinet FOREIGN KEY (clientID) REFERENCES client(clientID)
+```
+- DROP
+```sql
+ALTER TABLE client
+DROP CONSTRAINT FK_Sales_Clinet
+```
+<a id="selectinto"></a>
+- SELECT INTO
+	- DDL comman to create a table and optional data entry to it
+	- copies data from existing tables and can insert them to newly created table in the same syntax.
+	- Can copy across databases with 3 part naming: DB.SCHEMA.OBJECT 
+	- Can derive new columns and change columns names
+	- [Different between SELECT INTO and INSERT INTO](#dsi)  
+	 (4 part naming: LinkedServer.DB.SHEMA.OBJECT)
+	 ```sql
+	 SELECT * INTO Emplyee
+	 FROM advanworks.humanresource.employee
 		 
-		 SELECT * INTO traning.dbo.employee
-		 FROM h.humanresource.employee
+	 SELECT * INTO traning.dbo.employee
+	 FROM h.humanresource.employee
 
-		 SELECT gender as 'sex', title, COUNT(*) 'cnt'
-		 INTO newtable
-		 FROM oldtable
-		 GROUP BY gender, title
+	 SELECT gender as 'sex', title, COUNT(*) 'cnt'
+	 INTO newtable
+	 FROM oldtable
+	 GROUP BY gender, title
 
+	 ```
+## CONSTRAINTS
+- KEY CONSTRAINTS
+	- PRIMARY KEY  
+		- By default SQL server creates a clustered index on the primary key column
+		- Only one
+		- Not allow NULL
 
-		 ```
-	- constraints
-		- key constraints
-			- PRIMARY KEY  
-				- By default SQL server creates a clustered index on the primary key column
-				- Only one
-				- Not allow NULL
+	- UNIQUE KEY  
+		- By default SQL server creates a Non clustered Index on the unique key column
+		- Can have 999
+		- Allow NULL
 
-			- UNIQUE KEY  
-				- By default SQL server creates a Non clustered Index on the unique key column
-				- Can have 999
-				- Allow NULL
+		- FOREIGN KEY
+			1. must have unique key in parent
+			2. FK must have the same datatype
+	- OTHER CONSTRAINTS
+		- NULL, NOT NULL
+		- CHECK
+		
+		```sql
+		-- This is not work, because in columns level
+		CREATE TABLE patient(
+		patID INT NOT NULL,
+		adminDate DATE NOT NULL,
+		DischargeDate DATE CHECK( AdminDate <= DischargeDate)
+		)
+
+		-- Tihs will work
+		CREATE TABLE patient(
+		patID INT NOT NULL,
+		adminDate DATE NOT NULL,
+		DischargeDate DATE,
+		CHECK( AdminDate <= DischargeDate)
+		)
+		```
+		- DEFAULT  
+		only **one** default value 
 			
 
-			- FOREIGN KEY
-				1. must have unique key in parent
-				2. FK must have the same datatype
-		- other constraints
-			- NULL, NOT NULL
-			- CHECK
-				
-				```sql
-				-- This is not work, because in columns level
-				CREATE TABLE patient(
-				patID INT NOT NULL,
-				adminDate DATE NOT NULL,
-				DischargeDate DATE CHECK( AdminDate <= DischargeDate)
-				)
-
-
-				-- Tihs will work
-				CREATE TABLE patient(
-				patID INT NOT NULL,
-				adminDate DATE NOT NULL,
-				DischargeDate DATE,
-				CHECK( AdminDate <= DischargeDate)
-				)
-				```
-			- DEFAULT  
-			only **one** default value 
-				
-
-		- method to add constraint
+	- Method To Add Constraint
 			1. create tables and add constraints later with ALTER
 			2. create tables and add constraints at same time
 				```sql
@@ -239,6 +236,15 @@ DDL are used to create, alter, or drop any database objects
 	```sql
 	DELETE FROM B32_Candidates
 	WHERE Candidate_ID = 1 and Candidate_Name IS NULL
+
+	```sql
+	DELETE A
+	FROM (
+		SELECT *, ROW_NUMBER() OVER ( PARTITION BY Did ORDER BY Did) AS 'R'
+		FROM Dupes
+		) A
+	WHERE R > 1
+	```
 	```
 	<a id = "insertinto"></a>
 	- INSERT
@@ -376,6 +382,7 @@ Data query language
 		- use to show distinct values
 		- NULLs are considered as same in GROUP BY
 		- SELECT with group by, the columsn must be part of GROUP BY clause or aggregate functions
+		- Use functions in WHERE may go down the performance
 
 	<a id = "having"></a>
 	- HAVING
@@ -687,6 +694,14 @@ in delete, each delete will create one .LDF
 in truncate, only one or two .LDF (regarding to size)
 
 ## Functions
+| Usage -> FunctionType | SELECT | FROM | WHERE | GROUP BY | HAVING | ORDER BY | Nesting|
+| ------------- | ------ | ---- | ----- | -------- | ------ | -------- | -------|
+| Aggreagate | YES | NO | NO | NO | YES | YES | NO|
+| String | YES | NO | YES | YES | YES | YES | YES|
+| Date | YES | NO | YES | YES | YES | YES | YES|
+| Ranking | YES | NO | NO | NO | NO | YES | NO|
+| NULL | YES | NO | YES | YES | YES | YES | YES|
+| Conversion | YES | NO | YES | YES | YES | YES | YES|
 
 - Cateory
 	- System
@@ -731,9 +746,11 @@ Can be nested
 	YEAR(DemoDate) 'Year from Date'
 	FROM DateFnDemo
 	```
-	- GETDATE()
+	- GETDATE()  
+	MILLI (1/1000)
 	- GETUTCDATE()
-	- SYSDATETIME()
+	- SYSDATETIME()  
+	Get more precision than GETDATE(), MICRO (1/M)
 	- ISDATE(expression)
 	```sql
 	SELECT
@@ -783,7 +800,7 @@ Can be nested
 	-- Find the second apperance of a character
 	CHARINDEX('P', string, CHARINDEX('P', string)+1)
 	```
-	- PARTINDEX(pattern, string)  
+	- PATINDEX(pattern, string)  
 	Return the index of a pattern; Can use wild card
 	- RVERSE(string)
 	- REPLICATE(repeat string, times of repeat)
@@ -791,28 +808,43 @@ Can be nested
 	IF more than 2 characters, only return the ASCII value of 1st one
 	- CHAR(ASCII value)
 	- STUFF(string, start, length, NewString) 
-### Exercise
-```sql
---Find Employees who are retiring on Weekend assuming age of retirement is 60
---Using DATENAME function
-SELECT BusinessEntityID, BirthDate, DATENAME(WEEKDAY, DATEADD(YY, 60, BirthDate)) 'Day of Retiring'
-FROM AdventureWorks2012.HumanResources.Employee
-WHERE DATENAME(WEEKDAY, DATEADD(YY, 60, BirthDate)) IN ('Saturday','Sunday')
---Using DATEPART function
-SELECT BusinessEntityID, BirthDate, DATENAME(WEEKDAY, DATEADD(YY, 60, BirthDate)) 'Day of Retiring'
-FROM AdventureWorks2012.HumanResources.Employee
-WHERE DATEPART(WEEKDAY, DATEADD(YY, 60, BirthDate)) IN (1, 7)
+- Window functions
+OVER clause means using a window function
+	- Ranking
+	- Analytial (22 2012)
+	- Aggregate
+	- PARTITION BY 
+	GROUP BY : Give pysical make groups, create groups
+	PARTITION BY: In logical in buffer, create windows, will include non-group by and non-aggregate columns
 
---People hired on Monday
-SELECT *
-FROM AdventureWorks2012.HumanResources.Employee
-WHERE DATENAME(WEEKDAY, HireDate) = 'Monday'
-```	
+- Ranking functions
+	- ROW\_NUMBER()
+		- Best way to use to delete duplicates
+		- Give same rank number for duplicates
+		- Most recent Activity Based on DATE ( depends on business requirements)
+		- Without other ORDER BY columns, for duplicates, the order is random 
+		```sql
+		DELETE A
+		FROM (
+			SELECT *, ROW_NUMBER() OVER ( PARTITION BY Did ORDER BY Did) AS 'R'
+			FROM Dupes
+			) A -- A is referecing table, so the delete on A will also change on Dupes
+		WHERE R > 1
+		```
+
+		<++>
+	- RANK()
+		- Most recent Activity Based on DATE ( depends on business requirements)
+		- Don't use much because it skips values and hard to search
+	- DENSE\_RANK()
+		- Most recent Activity Based on DATE ( depends on business requirements)
+		- Firt/Secend Highest 
+		- Do not skip ranks
 		
-
 - Conversion Functions  
+
 	- CAST - It is universal, that means it is available in most of the databases such as Oracle, MySQL
-	- CONVERT - Convert uses style parameter, it is a variation of CAST developed by MS
+	- CONVERT - Convert uses style parameter, it is a variation of CAST developed by MS; convert only in SQL server.
 ```sql
 SELECT CAST('01/01/2017' AS DATE)
 SELECT CAST('01/33/2017' AS DATE)
@@ -837,7 +869,7 @@ SELECT * FROM COnversionFNs
 WHERE ISDATE(BDay) = 1
 
 SELECT * FROM COnversionFNs
-WHERE TRY_CAST(BDay AS DATE) IS NOT NULL
+WHERE TRY\_CAST(BDay AS DATE) IS NOT NULL
 
 SELECT *, CAST(BDay AS DATE)  
 FROM COnversionFNs
@@ -904,6 +936,15 @@ INSERT INTO machineparts VALUES
 
 DELETE FROM machineparts
 ```
+## sub-query and view
+- sub-query
+	- Correlatied sub-query ( should run everytime)
+	- Non-co-relatied sub-query ( only run 1 once)
+	- The Inner query (nest) query excecute fisrt
+	- The inner query can execute independently
+	- Maximum 32 levels
+	- ORDER BY clause is possible when you use TOP
+	- If in the SELECT use sub-query, out the child table outter, and parent table inner query( because if child in inner, will return more than one value)
 
 # System Procedure
 - Important
@@ -1023,6 +1064,24 @@ WHERE ReleaseDate BETWEEN '2018-01-01' AND '2018-12-31'
 GROUP BY ProdHID, ProdHouse
 
 ```
+### Exercise
+
+```sql
+--Find Employees who are retiring on Weekend assuming age of retirement is 60
+--Using DATENAME function
+SELECT BusinessEntityID, BirthDate, DATENAME(WEEKDAY, DATEADD(YY, 60, BirthDate)) 'Day of Retiring'
+FROM AdventureWorks2012.HumanResources.Employee
+WHERE DATENAME(WEEKDAY, DATEADD(YY, 60, BirthDate)) IN ('Saturday','Sunday')
+--Using DATEPART function
+SELECT BusinessEntityID, BirthDate, DATENAME(WEEKDAY, DATEADD(YY, 60, BirthDate)) 'Day of Retiring'
+FROM AdventureWorks2012.HumanResources.Employee
+WHERE DATEPART(WEEKDAY, DATEADD(YY, 60, BirthDate)) IN (1, 7)
+
+--People hired on Monday
+SELECT *
+FROM AdventureWorks2012.HumanResources.Employee
+WHERE DATENAME(WEEKDAY, HireDate) = 'Monday'
+```	
  TO be solved:
 	-Schreenshot TDP model P6 rules on google drive
 	-Cascade TDP model function
