@@ -1,5 +1,5 @@
 [TOC]
-# SQL server enviroment and concepts
+# SQL server environment and concepts
 
 ## Why use SQL server?
 1. Security
@@ -11,7 +11,7 @@
 7. Masking
 
 ## Tools
-- SQL Server Management Studio: Clinet tool to connect data server, mostly connect to development 
+- SQL Server Management Studio: Client tool to connect data server, mostly connect to development 
 
 ## Machine and environment
 - Machine
@@ -39,7 +39,7 @@ Information is passed from Windows system to SQL Server. This is most commonly u
  Has to provide Login and Password		
 
  - SCHEMA  
-	- It is a DB object focused specifically for security. It can b econsidered as a subset of a DB. It provides convenience of managing different user groups to have access only to certain DB objects.  
+	- It is a DB object focused specifically for security. It can be considered as a subset of a DB. It provides convenience of managing different user groups to have access only to certain DB objects.  
 	- Every object (which is under a DB) should have a schema, if no schema is defined while creating the object default schema is assigned for the object. Default schema is DBO (database owner)
 	```sql
 	ALTER TABLE [dbo].[B32_Candidates]
@@ -90,7 +90,7 @@ This is a **hidden** system DB. It holds all **meta data** and **resource manage
 C+n : open new query  
 C+e : run  
 A+x : run  
-F5 : runkk  
+F5 : run  
 		
 ## DB objects
 Store data:  
@@ -133,7 +133,7 @@ DROP CONSTRAINT FK_Sales_Clinet
 ```
 <a id="selectinto"></a>
 - SELECT INTO
-	- DDL comman to create a table and optional data entry to it
+	- DDL commonly to create a table and optional data entry to it
 	- copies data from existing tables and can insert them to newly created table in the same syntax.
 	- Can copy across databases with 3 part naming: DB.SCHEMA.OBJECT 
 	- Can derive new columns and change columns names
@@ -229,10 +229,10 @@ DROP CONSTRAINT FK_Sales_Clinet
 				CONSTRAINT fk_test FOREIGN KEY (prodID) REFERENCE prod(prodID)
 				```
 
-- DML
-	<a id = "delete"></a>
-	- DELETE
-		- [Difference between DELETE and TRUNCATE](#ddt)
+## DML
+<a id = "delete"></a>
+- DELETE
+	- [Difference between DELETE and TRUNCATE](#ddt)
 	```sql
 	DELETE FROM B32_Candidates
 	WHERE Candidate_ID = 1 and Candidate_Name IS NULL
@@ -245,13 +245,12 @@ DROP CONSTRAINT FK_Sales_Clinet
 		) A
 	WHERE R > 1
 	```
-	```
-	<a id = "insertinto"></a>
-	- INSERT
-	<a id="insertinto"></a>
-	- INSERT INTO 
-		- copies data into a existing table  
-		- [Different between SELECT INTO and INSERT INTO](#dsi)  
+<a id = "insertinto"></a>
+- INSERT
+<a id="insertinto"></a>
+- INSERT INTO 
+	- copies data into a existing table  
+	- [Different between SELECT INTO and INSERT INTO](#dsi)  
 
 	<a id="dsi"></a>
 	![Different between SELECT INTO and INSERT INTO](Pictures/SQL/Diff_SelectInto-Insert.JPG) 
@@ -274,11 +273,11 @@ DROP CONSTRAINT FK_Sales_Clinet
 	-- Method 3 (this way the number of value can less than number of columns, the columns not show here will be NULL or default.
 	INSERT INTO B32_Candidates (Candidate_Name, Candidate_ID) VALUES ('Yiping', 1);
 
-		-- Not work because number not match
-		INSERT INTO B32_Candidates VALUES (1); 
-		
-		-- Work and if the not show columns can be NULL, and if so, the not show columns will be NULL
-		INSERT INTO B32_Candidates(Candidate_ID) VALUES (1); 
+	-- Not work because number not match
+	INSERT INTO B32_Candidates VALUES (1); 
+	
+	-- Work and if the not show columns can be NULL, and if so, the not show columns will be NULL
+	INSERT INTO B32_Candidates(Candidate_ID) VALUES (1); 
 
 	CREATE TABLE B32_Backup (ID INT, CName VARCHAR(100))
 
@@ -290,51 +289,67 @@ DROP CONSTRAINT FK_Sales_Clinet
 
 	```
 
+- UPDATE
+```sql
+UPDATE B32_Candidates
+SET Candidate_Name = 'May'
+
+-- Update with sub-query and derived talbe 
+UPDATE DS
+SET Total = (SELECT SUM(Amount)
+			FROM DailyTrans DT
+			WHERE DT.TranDate = DS.SalesDate) 
+			-- Match the date from inner table and outer table
+FROM DailySales DS
 
 
-		
-	- UPDATE
-	```sql
-	UPDATE B32_Candidates
-	SET Candidate_Name = 'May'
+-- Update with deireved table and JOIN
+UPDATE DS
+SET DS.Total = A.Total
+FROM
+(SELECT DT.TranDate, SUM(Amount) AS Total
+FROM DailyTrans DT
+GROUP BY TranDate) A
+JOIN DailySales DS
+ON A.TranDate = DS.SalesDate
 
-	 CREATE TABLE Salary (ID INT, CName VARCHAR(10), Salary INT)
+CREATE TABLE Salary (ID INT, CName VARCHAR(10), Salary INT)
 
-	INSERT INTO Salary VALUES
-	(1, 'Yiping', 25000),
-	(2, 'Mounir', 45000),
-	(3, 'Swornim', 40000)
+INSERT INTO Salary VALUES
+(1, 'Yiping', 25000),
+(2, 'Mounir', 45000),
+(3, 'Swornim', 40000)
 
-	SELECT * FROM Salary
+SELECT * FROM Salary
 
-	UPDATE Salary
-	SET Salary = Salary*1.05
+UPDATE Salary
+SET Salary = Salary*1.05
 
-	UPDATE Salary
-	SET Salary = Salary+(5/100)*Salary
+UPDATE Salary
+SET Salary = Salary+(5/100)*Salary
 
-	UPDATE Salary
-	SET Salary += 0.05*Salary
-	```
+UPDATE Salary
+SET Salary += 0.05*Salary
+```
 
-	<a id = "truncate"></a>
-	- TRUNCATE
-		- [Difference between DELETE and TRUNCATE](#ddt)
-	<a id = "ddt"></a>
+<a id = "truncate"></a>
+- TRUNCATE
+	- [Difference between DELETE and TRUNCATE](#ddt)
+<a id = "ddt"></a>
 ![Different between delete and truncate](Pictures/SQL/Diff_Del-Trun.JPG) 
 Return to [DELETE](#delete),[TRUNCATE](#truncate)
-	```sql
-	TRUNCATE TABLE B32_Candidates
-	```
+```sql
+TRUNCATE TABLE B32_Candidates
+```
 
-	<a id="insertinto"></a>
-	- INSERT INTO 
-		- copies data into a existing table  
-		- [Different between SELECT INTO and INSERT INTO](#dsi)  
+<a id="insertinto"></a>
+- INSERT INTO 
+	- copies data into a existing table  
+	- [Different between SELECT INTO and INSERT INTO](#dsi)  
 
-<a id="dsi"></a>
-![Different between SELECT INTO and INSERT INTO](Pictures/SQL/Diff_SelectInto-Insert.JPG) 
-Return to [SELECT INTO](#selectinto), [INSERT INTO](#insertinto)  
+	<a id="dsi"></a>
+	![Different between SELECT INTO and INSERT INTO](Pictures/SQL/Diff_SelectInto-Insert.JPG) 
+	Return to [SELECT INTO](#selectinto), [INSERT INTO](#insertinto)  
 
 	```sql
 	INSERT INTO newtale
@@ -342,259 +357,218 @@ Return to [SELECT INTO](#selectinto), [INSERT INTO](#insertinto)
 	FROM oldtable
 	```
 		
-- DQL
+## DQL
 Data query language
-	- Precedence   
-	The order is following:  
+- Precedence   
+The order is following:  
 	1. FROM
 	2. WHERE
 	3. GROUP BY
 	4. HAVING
 	5. SELECT 
 	6. ORDER BY
-	- SELECT  
-		- Filter columns in SELECT statement
-		- Column expressions in SELECT
-		```sql
-		SELECT E.Business_ID, 'I have to go home'
-		FROM humanresource.Emplyee E
-		/*
-		1. select rows one by oneneeded E.Business_ID as one columns (select one row, do the logical in select, and then process next row)
-		2. Each row, add another row as 'I have to go home'
-		*/
-		```
+- SELECT  
+	- Filter columns in SELECT statement
+	- Column expressions in SELECT
+	```sql
+	SELECT E.Business_ID, 'I have to go home'
+	FROM humanresource.Emplyee E
+	/*
+	1. select rows one by oneneeded E.Business_ID as one columns (select one row, do the logical in select, and then process next row)
+	2. Each row, add another row as 'I have to go home'
+	*/
+	```
 
-	- FROM
-	<a id = "where"></a>
-	- WHERE
-		- row filters
-		- logical operators: AND, OR, NOT, BETWEEN, IN
-		- run conditions from left to right with same operators
-			- For AND, if the first is not meet, will not go the second condition, thus well affect the **performance running time**
-			- For OR, change the condition order will only impact the running time
-		- Operator precedence:
+- FROM
+<a id = "where"></a>
+- WHERE
+	- row filters
+	- logical operators: AND, OR, NOT, BETWEEN, IN
+	- run conditions from left to right with same operators
+		- For AND, if the first is not meet, will not go the second condition, thus well affect the **performance running time**
+		- For OR, change the condition order will only impact the running time
+	- Operator precedence:
 
-			1. ~ (bitwise NOT)
-			2. 
-		- The most clear mothed is to use () brackets
-		- [Difference between WHERE and HAVING](#dwh)
-	- GROUP BY
-		- use to show distinct values
-		- NULLs are considered as same in GROUP BY
+		1. ~ (bitwise NOT)
+		2. 
+	- The most clear mothed is to use () brackets
+	- [Difference between WHERE and HAVING](#dwh)
+- GROUP BY
+	- use to show distinct values
+	- NULLs are considered as same in GROUP BY
 		- SELECT with group by, the columsn must be part of GROUP BY clause or aggregate functions
-		- Use functions in WHERE may go down the performance
+	- Use functions in WHERE may go down the performance
 
 	<a id = "having"></a>
-	- HAVING
-		- Filter groups with conditions (must be able to compare)
-		- Data is fultered in buffer after all required data is pulled
-		- Commonly use with a group by clause, but can use without GROUP BY
-		- After group by in logical order
-		- Use columns in group by clause or aggregate funtion
-		- [Difference between WHERE and HAVING](#dwh)
-<a id = "dwh"></a>
-![different between where and having](Pictures/SQL/Diff_Where-Having1.JPG) 		
-Return to [WHERE](#where), [HAVING](#having)
-	- ORDER BY
-		- It is the only that guarantees a result set which sorted other wise the data is not guaranteed to be displayed  in sorted order
-		- run after SELECT (so can and the only one clause use alias name in SELECT)
-		- Use as less as possible for save resource
-		- Default in ASC; DESC can be use
-		- ORDER BY 1 (sort in the first column) (not recommend because databse can be edit)
-		- The columns order in GROUP BY will not have any affect the result set
-		- Be used in 2 scenarios:
-			- Find duplicate
+- HAVING
+	- Filter groups with conditions (must be able to compare)
+	- Data is fultered in buffer after all required data is pulled
+	- Commonly use with a group by clause, but can use without GROUP BY
+	- After group by in logical order
+	- Use columns in group by clause or aggregate funtion
+	- [Difference between WHERE and HAVING](#dwh)
+	<a id = "dwh"></a>
+	![different between where and having](Pictures/SQL/Diff_Where-Having1.JPG) 		
+	Return to [WHERE](#where), [HAVING](#having)
+- ORDER BY
+	- It is the only that guarantees a result set which sorted other wise the data is not guaranteed to be displayed  in sorted order
+	- run after SELECT (so can and the only one clause use alias name in SELECT)
+	- Use as less as possible for save resource
+	- Default in ASC; DESC can be use
+	- ORDER BY 1 (sort in the first column) (not recommend because databse can be edit)
+	- The columns order in GROUP BY will not have any affect the result set
+	- Be used in 2 scenarios:
+		- Find duplicate
 			- Get distinct 
-	- AS   
-	Following kind of code might cuase issues
-		- only can be used in SELECT, FROM
-	- BETWEEN	
-		- Can be used in int, charactor, date
-			```sql
-			SELECT *
-			FROM person
-			WHERE FirstName BETWEEN 'A' AND 'C'
-			/*
-			 will not show start with c
-			 EX. only show till C ('C' is included)  but without any like Cadey
-			 */
+- AS   
+Following kind of code might cuase issues
+	- only can be used in SELECT, FROM
+- BETWEEN	
+	- Can be used in int, charactor, date
+	```sql
+	SELECT *
+	FROM person
+	WHERE FirstName BETWEEN 'A' AND 'C'
+	/*
+	 will not show start with c
+	 EX. only show till C ('C' is included)  but without any like Cadey
+	 */
 
-			 SELECT *
-			 FROM test
-			 WHERE testdate BETWEEN '01/01/1061' AND '12/31/1970'
+	 SELECT *
+	 FROM test
+	 WHERE testdate BETWEEN '01/01/1061' AND '12/31/1970'
 
-			```
-		- is included  
-			> EX.
-			```sql
-			SELECT * FROM TEST
-			WHERE BETWEEN 1 and 100 == >=1 and <=100  
-			>\>1 AND <100 == BETWEEN AND !=1 AND != 100 (just for INT)
-			```
-		- Not good to use in decimal
-		
-	- IN	
+	```
+	- is included  
 		```sql
-		MiddleName NOT IN ('A', 'B') --This will not includ NULL values in MiddleName
-		MiddleName IN ('A', 'B')
-		-- the two reults cannot union to full set because cannot compare NULL with other values
-		MiddleName NOT IN ('A', 'B') OR MiddleName IS NULL
-		-- NULL cannot compare with eqaul or uneqaul
+		-- EX.
+		SELECT * FROM TEST
+		WHERE BETWEEN 1 and 100 == >=1 and <=100  
+		>\>1 AND <100 == BETWEEN AND !=1 AND != 100 (just for INT)
 		```
+	- Not good to use in decimal
 		
+- IN	
+```sql
+-- When ths set after NOT IN, Ex. ID NOT IN (NULL, 1, 3), will give a emply result
+if use sub-query to get the set after NOT IN, handle the NULL values first*(1. WHERE to limit NULL 2. Use co-related sub-query to limit) Or, use NOT EXISTS insead; 
 
 
-	- LIKE  
-	will internal convert to string to compare  
-	for like, SQL server cannot use index efficiently and thus for some case will use all records to compare if there is % at first, is not an efficient way
-		- use to string
-		- use to number
-		```sql
-		SELECT *
-		FROM TestWC
-		WHERE TotalDue NOT LIKE  '%.00'
-		```
-		- use to date (not recommanded)
-		```sql
-		SELECT HireDate
-		FROM Employee
-		WHERE HireDate LIKE '2009%'
+MiddleName NOT IN ('A', 'B') --This will not includ NULL values in MiddleName
+MiddleName IN ('A', 'B')
+-- the two reults cannot union to full set because cannot compare NULL with other values
+MiddleName NOT IN ('A', 'B') OR MiddleName IS NULL
+-- NULL cannot compare with eqaul or uneqaul
+```
+		
+- LIKE  
+will internal convert to string to compare  
+for like, SQL server cannot use index efficiently and thus for some case will use all records to compare if there is % at first, is not an efficient way
+	- use to string
+	- use to number
+	```sql
+	SELECT *
+	FROM TestWC
+	WHERE TotalDue NOT LIKE  '%.00'
+	```
+	- use to date (not recommanded)
+	```sql
+	SELECT HireDate
+	FROM Employee
+	WHERE HireDate LIKE '2009%'
+	```
 
-	- Wild Card  
-	A wildcard character is used to substitute one or more characters in a string.
-		- %
-		- ^ (carat) or ! (not)
-		- [] (Square brackets)
-			- ( LIKE '[afs]%', 
-			- [a-m]% , 
-			- [a-M-]% the last one will inclueded ' - ')
-		- _  ( Underline, stands for any 1 charactor)
-		- ESCAPE change the charactor sel meaning
-		Can sign any un special character as ESCAPE charactor
-		```sql
-		SELECT *
-		FROM wildcards
-		WHERE descp LIKE '%*%%' ESCAPE '*'
-		-- Here we want strings with ' % '
-		
-		-- Alternaltively, we can use  [ ]
-		SELECT *
-		FROM wildcards
-		WHERE descp LIKE '%[%]%' ESCAPE '*'
-		
-		```
+- Wild Card  
+A wildcard character is used to substitute one or more characters in a string.
+	- %
+	- ^ (carat) or ! (not)
+	- [] (Square brackets)
+		- ( LIKE '[afs]%', 
+		- [a-m]% , 
+		- [a-M-]% the last one will inclueded ' - ')
+	- _  ( Underline, stands for any 1 charactor)
+	- ESCAPE change the charactor sel meaning  
+	Can sign any un special character as ESCAPE charactor
+	```sql
+	SELECT *
+	FROM wildcards
+	WHERE descp LIKE '%*%%' ESCAPE '*'
+	-- Here we want strings with ' % '
+	
+	-- Alternaltively, we can use  [ ]
+	SELECT *
+	FROM wildcards
+	WHERE descp LIKE '%[%]%' ESCAPE '*'
+	
+	```
 
 	
-	- Aggregate  
-		1. With GROUP BY, after GROUP BY clause (HAVING, SELECT, ORDER BY) have only in GROUP BY columns and AggF(columns)
-		2. Create derive column, should give name with AS alis
-		3. Can oly filtered in HAVING and not limited to only what in SELECT
-		4. What data types does aggregate functions support:
-		5. Aggregate funtion cannot be **nested**: Ex: MAX(SUM(Sales)) --this not work
-		6. AggF is not mandatory to be included in GROUP BY
-			- Numeric
-			- INT
-			- Float
-			- Money
-			- Real
-			- Date ( Can use AggF except SUM, AVG)
-			- String ( Can use AggF except SUM, AVG)
-		7. Can be used in ORDER BY clause but not recommanded (recommand to aggF in select and alias a name
-		```sql
-		-- Work but not recommand
-		SELECT SalesPersonID
-		FROM Sales.SalesOrderHeader H
-		GROUP BY SalesPersonID
-		ORDER BY SUM(TotalDue)
+### JOIN
+- SELECT should indicate the the columns are in which table (mostly with ALIAS in FROM)
+- Will not match NULL values at join
+- Equal join
+- Non-Equal Join  
 
-		-- recommand
-		SELECT SalesPersonID, SUM(TotalDue) 'Total'
-		FROM Sales.SalesOrderHeader H
-		GROUP BY SalesPersonID
-		ORDER BY Total
-		```
-		```sql
-		-- in SELECT with out group by 
-		SELECT MAX(TotalDue) as 'Max sales'
-		FROM Sales;
+AID > BID; AID < BID; AID < > BID
+- Can use metadata sys.foreign keys to find relationships
+- Type
+	- INNER JOIN
+	- OUTER JOIN
+	Display every possible combination of all values in the designated / Cartesian product
+	- CROSS JOIN  
+	The following are derived not a real JOIN type
+	- Restricted Left/Right Outer  
+	Only unique left/right values (not match values)
+	```sql
+	-- Find movies without any reviews
+	-- Restricted Left Outer Join
+	SELECT *
+	FROM Moive M
+		LEFT JOIN Review R
+		ON R.MovieID = M.MovieID
+	WHERE R.MovieID IS NULL
 
-		-- in SELECT with GROUP BY and HAVING
-		SELECT custID, SUM(TotalDue)
-		FROM Sales
-		GROUP BY custID
-		HAVING SUM(TotalDue) > 5000
-		ORDER BY custID
-		```
-		- SUM
-		- MIN  
-		Can use ORDER BY and TOP to get the min and max result
-		- MAX
-		- AVG
-		- COUNT
-		COUNT is the only aggregate function that will not ignore NULL values. With null values, avg() and sum()/count() is not equal, the formal one is larger
-		- WITH
-		```SQL
-		```
+	```
+	- Self Join  
+	join a table to itself in some regard
+	```sql
+	CREATE TABLE Eomployee(
+	EmpID INT PRIMARY KEY,
+	Name VARCHAR,
+	ManagerID INT
+	)
 
- 	- JOIN
-		- SELECT should indicate the the columns are in which table (mostly with ALIAS in FROM)
-		- Will not match NULL values at join
-		- Equal join
-		- Non-Equal Join  
+	-- By sub-query
+		SELECT E.EmployeeID, E.FirstName,
+			(SELECT E1.FirstName
+			FROM Employees E1
+			WHERE E.ManagerID = E1.EmployeeID
+			) AS 'Manager Name'
+	FROM Employees E
+	WHERE MangerID IS NOT NULL
 
-			AID > BID; AID < BID; AID < > BID
-		- Can use metadata sys.foreign keys to find relationships
-		- Type
-			- INNER JOIN
-			- OUTER JOIN
-			Display every possible combination of all values in the designated / Cartesian product
-			- CROSS JOIN  
-				The following are derived not a real JOIN type
-				- Restricted Left/Right Outer  
-				Only unique left/right values (not match values)
-				```sql
-				-- Find movies without any reviews
-				-- Restricted Left Outer Join
-				SELECT *
-				FROM Moive M
-					LEFT JOIN Review R
-					ON R.MovieID = M.MovieID
-				WHERE R.MovieID IS NULL
+	-- Find who do not manage anyone
+
+	SELECT E1.EmpID 'Manager", E1.Name "Manager Name" 
+	FROM Employee E1
+		LEFT JOIN Employee E2
+		ON E1.EmpID = E2.MangagerID
+		WHERE E2.EmpID is NULL
+
+	```
 
 
-				```
-				- Self Join  
-				join a table to itself in some regard
-				```sql
-				/*
-				CREATE TABLE Eomployee(
-				EmpID INT PRIMARY KEY,
-				Name VARCHAR,
-				ManagerID INT
-				)
-
-				-- Find who do not manage anyone
-				SELECT E1.EmpID 'Manager", E1.Name "Manager Name" 
-				FROM Employee E1
-					LEFT JOIN Employee E2
-					ON E1.EmpID = E2.MangagerID
-					WHERE E2.EmpID is NULL
-
-				*/
-				```
-
-
-		- Inner Join  
-		No matter table order
-		- Outer Join  
-		' a LEFT JOIN b' == ' b RIGHT JOIN a'
-			- LEFT JOIN  
-			'LEFT JOIN' AND 'LEFT OUTER JOIN' are same
-			- RIGHT JOIN
+	- Inner Join  
+	No matter table order
+	- Outer Join  
+	' a LEFT JOIN b' == ' b RIGHT JOIN a'
+		- LEFT JOIN  
+		'LEFT JOIN' AND 'LEFT OUTER JOIN' are same
+		- RIGHT JOIN
 		- Full Join
 
-		Exercise:
-		Find records in table A which are not available in B
+		Ex:
+		Find records in table A which are not available in B  
 		Methods:
 		1. OUTER JOINS (The best way, best performance)
 		2. Sub queries
@@ -641,7 +615,7 @@ Number|
 |REAL|4|
 |MONEY|8|
 |SMALL MONEY|4|
-|BIT*|1 BIT|0/1|
+|BIT\*|1 BIT|0/1|
 Date|
 |DATE|3|
 |DATETIME|8|
@@ -693,7 +667,7 @@ DML, DDL --> db\_test --> .LDF --> .MDF
 in delete, each delete will create one .LDF
 in truncate, only one or two .LDF (regarding to size)
 
-## Functions
+# Functions
 | Usage -> FunctionType | SELECT | FROM | WHERE | GROUP BY | HAVING | ORDER BY | Nesting|
 | ------------- | ------ | ---- | ----- | -------- | ------ | -------- | -------|
 | Aggreagate | YES | NO | NO | NO | YES | YES | NO|
@@ -703,11 +677,63 @@ in truncate, only one or two .LDF (regarding to size)
 | NULL | YES | NO | YES | YES | YES | YES | YES|
 | Conversion | YES | NO | YES | YES | YES | YES | YES|
 
+## Aggregate  
+- Rules
+	1. With GROUP BY, after GROUP BY clause (HAVING, SELECT, ORDER BY) have only in GROUP BY columns and AggF(columns)
+	2. Create derive column, should give name with AS alis
+	3. Can oly filtered in HAVING and not limited to only what in SELECT
+	4. What data types does aggregate functions support:
+	5. Aggregate funtion cannot be **nested**: Ex: MAX(SUM(Sales)) --this not work
+	6. AggF is not mandatory to be included in GROUP BY
+		- Numeric
+		- INT
+		- Float
+		- Money
+		- Real
+		- Date ( Can use AggF except SUM, AVG)
+		- String ( Can use AggF except SUM, AVG)
+	7. Can be used in ORDER BY clause but not recommanded (recommand to aggF in select and alias a name
+	```sql
+	-- Work but not recommand
+	SELECT SalesPersonID
+	FROM Sales.SalesOrderHeader H
+	GROUP BY SalesPersonID
+	ORDER BY SUM(TotalDue)
+
+	-- recommand
+	SELECT SalesPersonID, SUM(TotalDue) 'Total'
+	FROM Sales.SalesOrderHeader H
+	GROUP BY SalesPersonID
+	ORDER BY Total
+	```
+	```sql
+	-- in SELECT with out group by 
+	SELECT MAX(TotalDue) as 'Max sales'
+	FROM Sales;
+
+	-- in SELECT with GROUP BY and HAVING
+	SELECT custID, SUM(TotalDue)
+	FROM Sales
+	GROUP BY custID
+	HAVING SUM(TotalDue) > 5000
+	ORDER BY custID
+	```
+- Types
+	- SUM
+	- MIN  
+	Can use ORDER BY and TOP to get the min and max result
+	- MAX
+	- AVG
+	- COUNT
+	COUNT is the only aggregate function that will not ignore NULL values. With null values, avg() and sum()/count() is not equal, the formal one is larger
+	- WITH
 - Cateory
 	- System
 	- User
-- Date functions  
+
+## Date functions  
 Can be nested
+- Types
 	- DATEADD(interval, number, date)
 	- DATEDIFF(interval, date1, date2)
 	```sql
@@ -770,8 +796,9 @@ Can be nested
 	SELECT EOMONTH ( @date, 1 ) AS 'Next Month';
 	SELECT EOMONTH ( @date, -1 ) AS 'Last Month';
 	```
-- String Function  
+## String Function  
 Can be nested
+- Types
 	- LEN()  
 	Will count the space before the last non character but not space after the last non-space charactor
 	- UPPER()
@@ -782,17 +809,17 @@ Can be nested
 	- Difference between CONCAT() and +
 		1.  ++ will return NULL if any is NULL; CONCAT() will ignore NULL and retur other values
 		2. ++ can not plus number and string (should conversion number to string first); CONCAT() will automatically convert number to string
-	- SUBSTRING(string, start position, number of charactors)
-	- LEFT(string, number of charactor to be sub)  
+	- SUBSTRING(string, start position, number of characters)
+	- LEFT(string, number of character to be sub)  
 	From left
-	- RIGHT (String, number of charactor to be sub)  
+	- RIGHT (String, number of character to be sub)  
 	From right
 	- REPLACE(String, OldString, NewString)
 	```sql
 	-- number of apperances of character(s)
 	SELECT LEN('RAJA') - LEN( REPLACE('RAJA', 'A',''))
 	```
-	- CHARINDEX(charactor to be find, string, start position (optional,this position is included)  
+	- CHARINDEX(character to be find, string, start position (optional,this position is included)  
 	Return the first appearance of a character in string, if cannot find, return 0, will count space. If the start position is <= 0, looks as 0 to find from all;
 	CHARINDEX('P',PerFName)  
 	Return the index location (start with 1) of  
@@ -808,10 +835,11 @@ Can be nested
 	IF more than 2 characters, only return the ASCII value of 1st one
 	- CHAR(ASCII value)
 	- STUFF(string, start, length, NewString) 
-- Window functions
+## Window functions
 OVER clause means using a window function
+- Types
 	- Ranking
-	- Analytial (22 2012)
+	- Analytical (22 2012)
 	- Aggregate
 	- PARTITION BY 
 	GROUP BY : Give pysical make groups, create groups
@@ -841,43 +869,43 @@ OVER clause means using a window function
 		- Firt/Secend Highest 
 		- Do not skip ranks
 		
-- Conversion Functions  
-
+## Conversion Functions  
+- Types
 	- CAST - It is universal, that means it is available in most of the databases such as Oracle, MySQL
 	- CONVERT - Convert uses style parameter, it is a variation of CAST developed by MS; convert only in SQL server.
-```sql
-SELECT CAST('01/01/2017' AS DATE)
-SELECT CAST('01/33/2017' AS DATE)
-SELECT CONVERT(DATE, '01/01/2017')
+	```sql
+	SELECT CAST('01/01/2017' AS DATE)
+	SELECT CAST('01/33/2017' AS DATE)
+	SELECT CONVERT(DATE, '01/01/2017')
 
-SELECT BusinessEntityID, HireDate, JobTitle,
-CONVERT(VARCHAR(100), BirthDate, 107), CONVERT(VARCHAR(100), BirthDate, 7)
-FROM HumanResources.Employee
+	SELECT BusinessEntityID, HireDate, JobTitle,
+	CONVERT(VARCHAR(100), BirthDate, 107), CONVERT(VARCHAR(100), BirthDate, 7)
+	FROM HumanResources.Employee
 
--- User try can avoid stop when have error when running
-SELECT TRY_CAST('01/33/2017' AS DATE)
+	-- User try can avoid stop when have error when running
+	SELECT TRY_CAST('01/33/2017' AS DATE)
 
-CREATE TABLE COnversionFNs 
-(BDay VARCHAR(25))
-GO
+	CREATE TABLE COnversionFNs 
+	(BDay VARCHAR(25))
+	GO
 
-INSERT INTO COnversionFNs values
-('01/15/2018'),('02/29/2019'),('05/15/2016'),('09/31/2019'),('2/15/2018')
+	INSERT INTO COnversionFNs values
+	('01/15/2018'),('02/29/2019'),('05/15/2016'),('09/31/2019'),('2/15/2018')
 
--- Use WHERE to avoid stop, same usage as TRY. Both are not good
-SELECT * FROM COnversionFNs
-WHERE ISDATE(BDay) = 1
+	-- Use WHERE to avoid stop, same usage as TRY. Both are not good
+	SELECT * FROM COnversionFNs
+	WHERE ISDATE(BDay) = 1
 
-SELECT * FROM COnversionFNs
-WHERE TRY\_CAST(BDay AS DATE) IS NOT NULL
+	SELECT * FROM COnversionFNs
+	WHERE TRY\_CAST(BDay AS DATE) IS NOT NULL
 
-SELECT *, CAST(BDay AS DATE)  
-FROM COnversionFNs
+	SELECT *, CAST(BDay AS DATE)  
+	FROM COnversionFNs
 
-SELECT BusinessEntityID, HireDate, JobTitle,
-TRY_CONVERT(VARCHAR(100), BirthDate, 117)
-FROM HumanResources.Employee
-```
+	SELECT BusinessEntityID, HireDate, JobTitle,
+	TRY_CONVERT(VARCHAR(100), BirthDate, 117)
+	FROM HumanResources.Employee
+	```
 	
 ## Parent child
  - DELETE child first then DELETE parent
@@ -887,138 +915,157 @@ FROM HumanResources.Employee
  	1. DROP FK --> UPDATE parent --> UPDATE child --> RE-Create FK
 	2. CASCADE function
 	3. (recommanded)Insert new value in parent --> change child to new value --> delete old value in parent
-	
 
-macine, parts, machine-part question	
+	```sql
+	-- Ex. macine, parts, machine-part question	
+	-- must drop child table fisrt and then drop parent table
+	DROP TABLE IF EXISTS machineparts
+	GO
+	DROP TABLE IF EXISTS machine
+	GO
+	DROP TABLE IF EXISTS parts
+	GO
+	CREATE TABLE machine
+	CREATE TABLE parts
+	(partID SMALLINT NOT NULL,
+	part VHARCHAR(100) NOT NULL,
+	partcat VHARCHAR(100),
+	-- Define the unique with CLUSTERED INDEX`
+	CONSTRAINT uk\_parts\_partID UNIQUE CLUSTERED(partID)
+	)
+	GO
+	CREATE TABLE machineparts
+	(machineID INT CONSTRAINT fk_machineparts_machineID FOREIGN KEY REFERENCES machine(machineID) ,
+	(partID SMALLINT CONSTRAINT fk_machineparts_partID FOREIGN KEY REFERENCES part(partID) ,
+	-- for foreign key, the datatype should be match
 
-```sql
--- must drop child table fisrt and then drop parent table
-DROP TABLE IF EXISTS machineparts
-GO
-DROP TABLE IF EXISTS machine
-GO
-DROP TABLE IF EXISTS parts
-GO
-CREATE TABLE machine
-CREATE TABLE parts
-(partID SMALLINT NOT NULL,
-part VHARCHAR(100) NOT NULL,
-partcat VHARCHAR(100),
--- Define the unique with CLUSTERED INDEX`
-CONSTRAINT uk_parts_partID UNIQUE CLUSTERED(partID)
-)
-GO
-CREATE TABLE machineparts
-(machineID INT CONSTRAINT fk_machineparts_machineID FOREIGN KEY REFERENCES machine(machineID) ,
-(partID SMALLINT CONSTRAINT fk_machineparts_partID FOREIGN KEY REFERENCES part(partID) ,
--- for foreign key, the datatype should be match
+	ALTER TABLE machineparts
+	ALTER COLUMN machineID INT NOT NULL,
 
-ALTER TABLE machineparts
-ALTER COLUMN machineID INT NOT NULL,
+	ALTER TABLE machineparts
+	ALTER COLUMN partID SMALLINT NOT NULL,
+	-- must change to not null and then change to primary key
+	ALTER TABLE machineparts
+	ADD CONSTRAINT pk_machinepart_machID_partID PRIMARY KEY (machineID, partID)
 
-ALTER TABLE machineparts
-ALTER COLUMN partID SMALLINT NOT NULL,
--- must change to not null and then change to primary key
-ALTER TABLE machineparts
-ADD CONSTRAINT pk_machinepart_machID_partID PRIMARY KEY (machineID, partID)
+	-- must insert parent first and then insert child
+	INTER INTO machine VALUES
+	(1, 'laptop', '5/15/2019')
 
--- must insert parent first and then insert child
-INTER INTO machine VALUES
-(1, 'laptop', '5/15/2019')
+	GO
+	INSERT INTO parts VALUES
+	(101, 'mother board', '5/15/2019')
 
-GO
-INSERT INTO parts VALUES
-(101, 'mother board', '5/15/2019')
+	GO
+	INSERT INTO machineparts VALUES
+	(1, 101)
 
-GO
-INSERT INTO machineparts VALUES
-(1, 101)
-
-DELETE FROM machineparts
-```
+	DELETE FROM machineparts
+	```
 ## sub-query and view
 - sub-query
-	- Correlatied sub-query ( should run everytime)
-	- Non-co-relatied sub-query ( only run 1 once)
-	- The Inner query (nest) query excecute fisrt
+	- Correlated sub-query ( should run every time)
+	- Non-co-related sub-query ( only run 1 once)
+	- The Inner query (nest) query execute first
 	- The inner query can execute independently
 	- Maximum 32 levels
 	- ORDER BY clause is possible when you use TOP
-	- If in the SELECT use sub-query, out the child table outter, and parent table inner query( because if child in inner, will return more than one value)
+	- If in the SELECT use sub-query, keep the child table outer, and parent table inner query( because if child in inner, will return more than one value) (If both are not unique, cannot use sub-query in SELECT as JOIN)
+	- For running totals (accumulate)
+	```sql
+	-- Accumulate/ runningTotals
+	SELECT * (SELECT SUM(Sales)
+				FROM RunningTotals R2
+				WHERE R2.ID <= R1.ID
+	FROM RunningTotals R1
+
+	-- rank without ranking functions
+	SELECT Sales, (SELECT COUNT(Sales)
+					FROM RunningTotals R2
+					WHERE R2.Sales > R1.Sales
+					)
+	FROM RunningTotals R1
+	```
+
+	
+- Views
+	- Purpose
+		- Security
+		- Add INDEX to view to improve performance of QUERY with in View
+		- Pysical table will not update, create view will update when underlying table changed
+	- Within the view
+		1. Only DQL
+		2. CREATE OR ALTER (avoid trigglers)
+	- Without the view
+		1. Reusability
+		2. Provide convenience in reporting & integration projects
+		4. When the underlying table (data referecing by VIEW) change, the result set in VIEW also changed
 
 # System Procedure
 - Important
 Retrieves the info about an object  
-	- EXEC SP_HELP '[dbo].[uspGetBillOfMaterials]'
-	- --Gives out the definition of the user defined objects and system objects (Not for table and system functions)
-	- EXEC SP_HELPTEXT '[dbo].[uspGetBillOfMaterials]'
-	- EXEC SP_HELPTEXT 'SP_HELP'
-	- EXEC SP_HELPTEXT '[HumanResources].[Employee]'
-	- EXEC SP_HELPTEXT '[dbo].[fnExtCharIndex]'
+	- EXEC SP\_HELP '[dbo].[uspGetBillOfMaterials]'  
+	Gives out the definition of the user defined objects and system objects (Not for table and system functions)
+	- EXEC SP\_HELPTEXT '[dbo].[uspGetBillOfMaterials]'
+	- EXEC SP\_HELPTEXT 'SP\_HELP'
+	- EXEC SP\_HELPTEXT '[HumanResources].[Employee]'
+	- EXEC SP\_HELPTEXT '[dbo].[fnExtCharIndex]'
 	- --Provides info about a specified database or all the databases (DB name is optional)
-	- EXEC SP_HELPDB 'Training_SQL'
-	- EXEC SP_HELPDB 'AdventureWorks2012'
-	- EXEC SP_WHO2
-	- EXEC SP_WHO
-	- EXEC SP_EXECUTESQL N'SELECT * FROM Person'
+	- EXEC SP\_HELPDB 'Training\_SQL'
+	- EXEC SP\_HELPDB 'AdventureWorks2012'
+	- EXEC SP\_WHO2
+	- EXEC SP\_WHO  
+	For SP\_WHO OR  SP\_WHO2, there is 'blk by' columns means for a session, it is block(wait other session to run and finished) by other session number. Can find the session need to kill.
+	- EXEC SP\_EXECUTESQL N'SELECT * FROM Person'
 	```sql
-	EXEC SP_EXECUTESQL N'SELECT * FROM Person'
+	EXEC SP\_EXECUTESQL N'SELECT * FROM Person'
 	```
 	Why? Use as dynamical execute query
-	- EXEC SP_LOCK
-	- EXEC SP_RENAME 'B27_ColumnName.newid', 'ID', 'COLUMN';
-	- EXEC SP_RENAMEDB 'Training_SQL', 'Training_SQL2'
+	- EXEC SP\_LOCK
+	- EXEC SP\_RENAME 'B27\_ColumnName.newid', 'ID', 'COLUMN';
+	
+	```sql
+	EXEC SP\_RENAME 'Table', 'OldColumnName', 'NewColumnName'
+	```
+	- EXEC SP\_RENAMEDB 'Training\_SQL', 'Training\_SQL2'
 	- --What are the different objects that depend on a given object
-	- EXEC SP_DEPENDS '[dbo].[uspGetBillOfMaterials]'
+	- EXEC SP\_DEPENDS '[dbo].[uspGetBillOfMaterials]'
 
 - Good to remember
-	- EXEC SP_WHO 'ACTIVE' --login' | session ID | 'ACTIVE'
-	- EXEC SP_ADDTYPE PhoneNo, 'varchar(13)', 'NOT NULL'
-	- EXEC SP_DROPTYPE 
-	- EXEC SP_COLUMNS 'Emp'
+	- EXEC SP\_WHO 'ACTIVE' --login' | session ID | 'ACTIVE'
+	- EXEC SP\_ADDTYPE PhoneNo, 'varchar(13)', 'NOT NULL'
+	- EXEC SP\_DROPTYPE 
+	- EXEC SP\_COLUMNS 'Emp'
 	- --Provides info about indexes on a Table or View
-	- EXEC SP_HELPINDEX '[HumanResources].[Employee]'
+	- EXEC SP\_HELPINDEX '[HumanResources].[Employee]'
 	- --To attch .df, .ldf and .ndf files to a server instance
-	- EXEC SP_ATTACH_DB @dbname=  'AdventureWorks2008', @filename1= 'C:\.........'
-	- EXEC SP_DETACH_DB
+	- EXEC SP\_ATTACH\_DB @dbname=  'AdventureWorks2008', @filename1= 'C:\.........'
+	- EXEC SP\_DETACH\_DB
 	- --Provides the info about the files associated to DB .mdf, .ldf, .ndf
-	- EXEC SP_HELPFILE
+	- EXEC SP\_HELPFILE
 	- --Provides the information about language, months, days, start of the week
-	- EXEC SP_HELPLANGUAGE English;
-	- EXEC SP_HELPSERVER
-	- EXEC SP_HELPSORT
-	- EXEC SP_BINDRULE
-	- EXEC SP_UNBINDRULE
-	- EXEC SP_HELPTRIGGER '[Person].[Password]'
-	- EXEC SP_SPACEUSED 'Employee'
+	- EXEC SP\_HELPLANGUAGE English;
+	- EXEC SP\_HELPSERVER
+	- EXEC SP\_HELPSORT
+	- EXEC SP\_BINDRULE
+	- EXEC SP\_UNBINDRULE
+	- EXEC SP\_HELPTRIGGER '[Person].[Password]'
+	- EXEC SP\_SPACEUSED 'Employee'
 
 - Some more research
-	- EXEC SP_CONFIGURE
+	- EXEC SP\_CONFIGURE
 
 - Gives the info of all the constraints on a given object
-	- EXEC SP_HELPCONSTRAINT 'HumanResources.Employee'
+	- EXEC SP\_HELPCONSTRAINT 'HumanResources.Employee'
 	```sql
-	EXEC SP_HELPBD
-	EXEC SP_WHO2
+	EXEC SP\_HELPBD
+	EXEC SP\_WHO2
 	```
+	- SP\_LOCK
+	rename column name
 
-- SP\_WHO SP\_WHO2  
-for SP\_WHO OR  SP\_WHO2, there is 'blk by' columns means for a session, it is block(wait other session to run and finished) by other session number. Can find the session need to kill.
-
-
-
-
-
-
-- SP\_LOCK
-- SP\_RENAME   
-rename column name
-```sql
-EXEC SP_RENAME 'Table', 'OldColumnName', 'NewColumnName'
-```
-
-- SP\_DEPENDS
-Find all tables depend (child table) on this table. Find what tables will be impact if change this table in structure change.
+	- SP\_DEPENDS
+	Find all tables depend (child table) on this table. Find what tables will be impact if change this table in structure change.
 
  
 
@@ -1081,15 +1128,8 @@ WHERE DATEPART(WEEKDAY, DATEADD(YY, 60, BirthDate)) IN (1, 7)
 SELECT *
 FROM AdventureWorks2012.HumanResources.Employee
 WHERE DATENAME(WEEKDAY, HireDate) = 'Monday'
-```	
- TO be solved:
-	-Schreenshot TDP model P6 rules on google drive
-	-Cascade TDP model function
-	- Difference between PK and FK
-	- WITH clause
 
-
-SELECT COUNT(DISTICNT GenreCode)
+SELECT COUNT(DISTINCT GenreCode)
 FROM Genre
 
 SELECT PH.ProdHouse
@@ -1098,6 +1138,127 @@ FROM ProdHouse PH
 	JOIN Movie M
 
 ON 
+```	
+## Past evaluation test
+1.	Write code to create table for the Viewer in the model below. Use proper data types and constraints, some of the following business rules need to implement.  
+a.	Email should be unique, email should be either gmail or yahoo and only .com is allowed. Length of username should be minimum of 5 characters and there should be a (.) after @. Also it should allow (.) before @  
+b.	Gender should accept only M, F, N values  
+c.	Last name should be longer than 1 character  
+d.	DOB should be over 18 years  
+```sql
+CREATE TABLE Viewer(
+PersonID INT CONSTRAINT pk_viewer PRIMARY KEY,
+FirstName VARCHAR,
+MiddleName VARCHAR,
+LastName VARCHAR CONSTRAINT lastname_check (LastName LIKE '_%'),
+DOB DATE CONSTRAINT dob_check ( DATEDIFF ( YY, DOB, GETDATE()) )
+Gender CHAR(1) CONSTRAINT gender_check CHECK (Gender IN ('M', 'F', 'N'),
+Email VARCHAR CONSTRAINT uk_viewer UNIQUE,
+StartDate DATE,
+CONSTRAINT Email_gmail_check CHECK( Email LIKE "_____%@gmail.com"),
+CONSTRAINT Email_yahoo_check CHECK ( Email LIKE "_____%@yahoo.com"),
+
+```
+2.	Find Genres in which there are no movies
+a.	Using JOINs
+```sql
+SELECT G.Genre
+FROM Genre G LEFT JOIN Moive M ON G.GenreCOde = M.GenreCode
+WHERE M.MovieID IS NULL
+```
+b.	Using Sub Queries
+```sql
+SELECT G.Genre
+FROM Genre G
+WHERE G.GenreCode NOT IN ( SELECT DISTINCT M.GenreCode FROM Movie M)
+```
+3.	Find Maximum and Minimum rating for each movie. Output should have MovieName, Max Rating and Minimum Rating
+a.	Using JOINs
+```sql
+SELECT M.MovieName, MAX(Points) AS 'Max Rating', MIN(Points) AS 'Min Rating'
+FROM Revies R JOIN Movie M ON M.MovieID = R.MovieID
+GROUP BY MovieID
+```
+
+b.	Using Sub Queries
+```sql
+SELECT (SELECT M.MovieName
+		FROM Movie M
+		WHERE M.MovieID = R.MovieID),
+		MAX(Points) AS 'Max Rating', MIN(Points) AS 'Min Rating'
+FROM Review R
+GROUP BY R.MovieID
+```
+4.	Find all reviews in which name of the hero is mentioned but not name of the heroine.
+```sql
+SELECT R.Review
+FROM Review R JOIN Movie M ON R.MovieID = M.MovieID
+WHERE M.Hero IS NOT NULL AND M.Heroine IS NULL
+```
+
+5.	Find average rating given by Male and Female viewers. Output should have MovieName, MaleAvgRating, FemaleAvgRating
+```sql
+SELECT M.MovieName, AVG(Points) AS 'AvgRating'
+FROM Movie M, JOIN Review R ON M.MovieID = R.MovieID
+	JOIN Viewer ON R.PersonID = V.PersonID
+GROUP BY Gender
+
+SELECT (SELECT M.MovieName FROM Movie M WHERE R.MovieID = M.MovieID), AVG(Points) AS 'AvgRating'
+FROM Review R JOIN Viewer ON R.PersonID = V.PersonID
+GROUP BY Gender
+```
+
+6.	Find Name of Production House which made movie which generated highest total collections and lowest total collections. It should give 2 rows 1 for high value and another for low value.
+```sql
+
+SELECT ProdHouse
+FROM (
+	SELECT P.ProdHouse, 
+		DENSE\_RANK() OVER ( ORDER BY SUM( ISNULL(CollectionAmt, 0) DESC) AS "Rank\_High",
+		DENSE\_RANK() OVER ( ORDER BY SUM( ISNULL(CollectionAmt, 0) DESC) AS "Rank\_Low"
+	FROM ProdHouse P LEFT JOIN MovieProd MP ON P.ProdHID = MP.ProdHID
+		JOIN Movie M ON MP.ProdHID
+		JOIN Collections C ON M.MovieID = C.MovieID
+	GROUP BY P.ProdHouse
+	)
+WHERE Rank\_High = 1 OR Rank_Low = 1
+```
+
+7.	Rank (Dense Rank) all movies based on their second day collections.
+```sql
+SELECT M.MovieName, DENSE\_RANK() OVER ( ORDER BY ShowDate) AS 'Rank"
+FROM Movie M JOIN Collections C ON M.MovieID = C.MovieID AND DATEDIFF(DD,ReleaseDate, ShowDate) = 1
+```
+
+R8.	Find top 10 best years based on collections generated by all movies, you should consider inflation factor of 3% for each year.
+```sql
+SELECT TOP 10 YEAR(ShowDate) AS "Yr"
+	ROW\_NUMBER() OVER ( ORDER BY POWER(SUM(CollectionAmt), 1.03) ) AS "Rank"
+FROM Collections
+GROUP BY YEAR(ShowDate)
+
+```
+9.	Find all movies that generated revenue less than their budgets.
+```sql
+SELECT M.MovieName
+FROM Movie M JOIN Collections C ON M.MovieID = C.MovieID
+GROUP BY M.MovieID 
+HAVING SUM(CollecionAmt) = MAX(Budget)
+```
+
+10.	Show all movies and how many days that movie is screened. Output should have MovieName, NumDaysScreened.
+```sql
+SELECT M.MovieID, DATEDIFF(DD, M.ReleaseDate, MAX( C.ShowDate) ) AS "NumDayScreened"
+FROM Movie M JOIN Collections C ON M.MovieID = C.MovieID
+GROUP BY M.MovieID
+
+```
+
+
+![Evaluation.png](Pictures/SQL/Evaluation.png) 
+ 
+
+
 # Research Questions
 1. Can you add a column in between existing columns.
 	Default will add at the end
@@ -1113,3 +1274,8 @@ ON
 
 	ALTER TABLE test ADD COLUMN c INT AFTER* a
 	```
+ TO be solved:
+	-Schreenshot TDP model P6 rules on google drive
+	-Cascade TDP model function
+	- Difference between PK and FK
+	- WITH clause
