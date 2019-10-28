@@ -1193,7 +1193,8 @@ GROUP BY R.MovieID
 ```sql
 SELECT R.Review
 FROM Review R JOIN Movie M ON R.MovieID = M.MovieID
-WHERE M.Hero IS NOT NULL AND M.Heroine IS NULL
+WHERE R.Review LIKE CONCAT('%', M.Hero, '%') AND R.Review NOT LIKE CONCAT('%', M.Heroine, '%')
+-- Can also use LIKE '%'+M.Hero+'%' or WHERE PATINDEX(M.Hero, R.review) != 0
 ```
 
 5.	Find average rating given by Male and Female viewers. Output should have MovieName, MaleAvgRating, FemaleAvgRating
