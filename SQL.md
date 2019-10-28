@@ -24,23 +24,28 @@
 - Instance  
 It is an installation of SQL Server on a machine (Windows/Linux).
 	- 2 Types of Instances are possible 
-		1. Default 
-Only 1 Default per machine
-		2. Named 
-Up to 50 instances per machine are possible 
+		1. Default   
+		Only 1 Default per machine  
+		2. Named   
+		Up to 50 instances per machine are possible   
 	
 - Session  
 Session can be defined as an **interaction** of an application with SQL Server for a specific time (usually sessions time out if there is no activity after certain period) to perform an operation. User sessions start from 50 and above, system session will use SPID < 50.
 
 - Authentication
-	1. Windows 
-Information is passed from Windows system to SQL Server. This is most commonly used type.
-	2. SQL Server 
- Has to provide Login and Password		
+	1. Windows   
+Information is passed from Windows system to SQL Server. This is most commonly used type.  
+	2. SQL Server   
+ Has to provide Login and Password		    
 
  - SCHEMA  
-	- It is a DB object focused specifically for security. It can be considered as a subset of a DB. It provides convenience of managing different user groups to have access only to certain DB objects.  
-	- Every object (which is under a DB) should have a schema, if no schema is defined while creating the object default schema is assigned for the object. Default schema is DBO (database owner)
+- It is a database **object**, which is a **subset of a database**. 
+- Schema is like a container which **groups different objects** when they are created using a specific schema name (Ex: HumanResources, Person, Production etc), if a schema name is not used while creating object, object will be created under **default schema which is DBO**. 
+- Schema provides more **granular control security** on the DB objects. **Every object needs a schema, object cannot created without a schema**. It provides convenience of more granular security than **at database level**. 
+- When a table or other DBO is accessed using schema name and object name it is called 2 part naming convention  
+2 Part	-	Schema.Object  
+3 Part	-	Database.Schema.Object  
+4 Part	-	LinkedServer.Database.Schema.Object  
 	```sql
 	ALTER TABLE [dbo].[B32_Candidates]
 	ALTER COLUMN [Candidate_ID] INT
@@ -48,6 +53,31 @@ Information is passed from Windows system to SQL Server. This is most commonly u
 	ALTER TABLE [dbo].[B32_Candidates]
 	ALTER COLUMN [Candidate_ID] INT NOT NULL
 	```
+- OLTP   
+Online Transactional Processing, this DB is Normalized to 3NF or beyond. Purpose of this DB to handle day to day business process. Ex: In banking daily transactions like deposits, withdrawals, transfers etc goes to this DB   
+ - OLAP   
+Online Analytical Processing, this DB is used for decision and analyzing business needs by consuming large volume of data. Most of the times this DB is de-normalized. Ex: In a store environment analyzing sales over a period of 1 year or 2 years, analyzing complaints about a product etc.	  
+
+- db\_test files
+Every Database should have 2 mandatory data file types   
+	.MDF - Primary Data File  
+	.LDF - Log Data File  
+and optionally it can have   
+	.NDF - Secondary Data File
+create two files:
+1. db\_test.MDF 
+
+2. db\_test.LDF
+	- log shipping
+	- improve only  perations for 
+	- helps in back up
+	- disastor recorvery
+
+DML, DDL --> db\_test --> .LDF --> .MDF
+
+in delete, each delete will create one .LDF
+in truncate, only one or two .LDF (regarding to size)
+
 ## Connecting to different Server Categories
 1. Local Server 
 This is an instance of server that is installed on a local machine like laptop or desktop.
@@ -68,10 +98,10 @@ This is an instance of server that is installed on a remote machine like a blade
 	- Server Name Alias 
 
 ## Types of DBs
-1. User Databases 
-Created by user
-2. System Databases 
-These are created when SQL Server is installed.	
+1. User Databases   
+Created by user  
+2. System Databases   
+These are created when SQL Server is installed.	  
 
 - Master   
 It holds **security** related information and it is very important DB from migration and security perspective. It holds **server level information** such DB users, Server logins, passwords, server level settings. All user defined DBs are authenticated using this DB. It can be considered as heart of SQL Server.
@@ -93,19 +123,20 @@ A+x : run
 F5 : run  
 		
 ## DB objects
-Store data:  
-- TABLE
-- INDEXES
-STORE SQL CODE:  
-- VIEW
-- PROCEDURES
-- FUNCTIONS
-- TRIGGERS
+- Store data:  
+	- TABLE  
+	- INDEXES  
+- STORE SQL CODE:  
+	- VIEW
+	- PROCEDURES
+	- FUNCTIONS
+	- TRIGGERS
 
 # Query
 ## DDL
-DDL are used to create, alter, or drop any database objects
-	- CREATE
+These commands are used to create or modify or remove **structure** of a DB object
+- CREATE  
+To create a new **DB object** in a specified database
 ```sql
 CREATE TABLE B32_Candidates
 (
@@ -113,10 +144,10 @@ Candidate_ID NUMERIC(3, 0),
 Candidate_Name VARCHAR(100)
 )
 ```
-- ALTER
-Can not change column name
-- add constraints
+- ALTER  
+To modify the structure of an existing DB object in the database  
 ```sql
+-- add constraints
 ALTER TABLE sales
 ALTER COLUMN salseID INT NOT NULL;
 
@@ -126,17 +157,20 @@ ADD CONSTRAINT pk_sales PRIMARY KEY (SalesID)
 ALTER TABLE sales
 ADD CONSTRAINT fk_sales_clinet FOREIGN KEY (clientID) REFERENCES client(clientID)
 ```
-- DROP
+- DROP  
+To remove an existing DB object from the database  
 ```sql
 ALTER TABLE client
 DROP CONSTRAINT FK_Sales_Clinet
 ```
 <a id="selectinto"></a>
 - SELECT INTO
+	- Developer can use this 1 command to create and load data from existing table/tables into 1 table. 
+	- With a change in the properties of DB this command works as a BULK OPERATION, that means it minimizes logging and improves data loading process
 	- DDL commonly to create a table and optional data entry to it
-	- copies data from existing tables and can insert them to newly created table in the same syntax.
-	- Can copy across databases with 3 part naming: DB.SCHEMA.OBJECT 
 	- Can derive new columns and change columns names
+
+	- Can only copy 3 properties: data type, NULL-Ability, IDENTITY (if source table have those properties)
 	- [Different between SELECT INTO and INSERT INTO](#dsi)  
 	 (4 part naming: LinkedServer.DB.SHEMA.OBJECT)
 	 ```sql
@@ -153,91 +187,108 @@ DROP CONSTRAINT FK_Sales_Clinet
 
 	 ```
 ## CONSTRAINTS
+They are used to enforce data integrity in the database. 
 - KEY CONSTRAINTS
 	- PRIMARY KEY  
-		- By default SQL server creates a clustered index on the primary key column
-		- Only one
-		- Not allow NULL
+		- Not NULL and unique
+		- Only one PK
+		- PK maintains **Entity** Integrity 
+		- By default PK creates a Clustered Index on the table. This behavior can be changed to Non-Clustered Index 
 
 	- UNIQUE KEY  
-		- By default SQL server creates a Non clustered Index on the unique key column
-		- Can have 999
-		- Allow NULL
+- Allows 1 NULL value and rest of the values have to be unique. 
+- By default UK creates a Non-Clustered Index. This default behavior can be changed. 
+- Maximun 999 unique keys per table. 
+- A UK with NOT NULL is considered as light weight PK as it creates a Non-Clustered Index 
+- UK and PK cannot be created without indexes. They have to have either clustered or non clustered indexes. pk/uk can be created using upto 16 columns.
 
-		- FOREIGN KEY
-			1. must have unique key in parent
-			2. FK must have the same datatype
-	- OTHER CONSTRAINTS
-		- NULL, NOT NULL
-		- CHECK
+	- FOREIGN KEY
+		-It is a column that references a Unique value in another table or itself (self referencing EmpID - ManagerID). 
+		- FK maintains **Referential Integrity**. 
+ 		- FK can have NULLs (online sales  and store sales) 
+ 		- FK allows duplicate values (1-Many relationship). 
+		-  must have unique key in parent and  FK must have the same datatype
+
+- OTHER CONSTRAINTS
+	- NULL-Ability (NULL, NOT NULL)
+	Defining a column allow or does not allow NULL values. It maintains **portion of Domain Integrity**
+	- CHECK  
+		- It defines what values (domain) are accepted in a column. Ex: Date should be greater than today's date, email should have @ and . etc. 
+		- It is used to maintain **Domain Integrity**
 		
-		```sql
-		-- This is not work, because in columns level
-		CREATE TABLE patient(
-		patID INT NOT NULL,
-		adminDate DATE NOT NULL,
-		DischargeDate DATE CHECK( AdminDate <= DischargeDate)
-		)
+	```sql
+	-- This is not work, because in columns level
+	CREATE TABLE patient(
+	patID INT NOT NULL,
+	adminDate DATE NOT NULL,
+	DischargeDate DATE CHECK( AdminDate <= DischargeDate)
+	)
 
-		-- Tihs will work
-		CREATE TABLE patient(
-		patID INT NOT NULL,
-		adminDate DATE NOT NULL,
-		DischargeDate DATE,
-		CHECK( AdminDate <= DischargeDate)
-		)
-		```
-		- DEFAULT  
-		only **one** default value 
+	-- Tihs will work
+	CREATE TABLE patient(
+	patID INT NOT NULL,
+	adminDate DATE NOT NULL,
+	DischargeDate DATE,
+	CHECK( AdminDate <= DischargeDate)
+	)
+	```
+	- DEFAULT    
+		- If no values are provided by user, system can insert the DEFAULT value for a column. 
+		- It maintains **portion of Domain Integrity**
+		- only **one** default value 
 			
 
-	- Method To Add Constraint
-			1. create tables and add constraints later with ALTER
-			2. create tables and add constraints at same time
-				```sql
-				CREATE TABLE test
-				(salesID int PRIMAR KEU,
-				prodID int UNIQUE,
-				clientID int NOT NULL,
-				qty INT DEFAULT 0,
-				total MONEY);
+- Method To creating/defining Constraints
+There is a not a good or bad way of using above methods. 
+	1. Defining Constraint next to a column, in this method constraints are created along with Table. Some constraints will not be able to create in 1 method then you have to use other method. Ex: AdmitDate and DischargeDate example for CHECK constraint with method 1 defined above. DEFAULT constraint with Method 2 discussed above.
+	2. Defining Constraint after all the columns are defined in the table, in this method constraints are created along with Table.
+	3. Defining them after table is created using ALTER statement.
+	```sql
+	CREATE TABLE test
+	(salesID int PRIMAR KEU,
+	prodID int UNIQUE,
+	clientID int NOT NULL,
+	qty INT DEFAULT 0,
+	total MONEY);
 
-				DROP TABLE test;
+	DROP TABLE test;
 
-				CREATE TABLE test
-				(salesID int CONSTRAINT pk_test PRIMAR KEY,
-				prodID int CONSTRAINT uk_test UNIQUE,
-				clientID int NOT NULL,
-				qty INT DEFAULT 0,
-				total MONEY)
-				
-				INSERT INTO test VALUES (1, 1, 1, null, 0)
+	CREATE TABLE test
+	(salesID int CONSTRAINT pk_test PRIMAR KEY,
+	prodID int CONSTRAINT uk_test UNIQUE,
+	clientID int NOT NULL,
+	qty INT DEFAULT 0,
+	total MONEY)
+	
+	INSERT INTO test VALUES (1, 1, 1, null, 0)
 
-				INSERT INTO test (salesID, prodID, clientID, Total)VALUES (2, 1, 1, 0)
+	INSERT INTO test (salesID, prodID, clientID, Total)VALUES (2, 1, 1, 0)
 
-				```
-			3. create tables with contraints in different sentence
-				```sql
-				CREATE TABLE test
-				(salesID INT NOT NULL,
-				prodID INT NOT NULL,
-				clientID INT NOT NULL,
-				qty INT,
-				total MONEY)
+	```
+	3. create tables with contraints in different sentence
+	```sql
+	CREATE TABLE test
+	(salesID INT NOT NULL,
+	prodID INT NOT NULL,
+	clientID INT NOT NULL,
+	qty INT,
+	total MONEY)
 
-				CONSTRAINT pk_test PRIMARY KEY (salesID)
-				CONSTRAINT fk_test FOREIGN KEY (prodID) REFERENCE prod(prodID)
-				```
+	CONSTRAINT pk_test PRIMARY KEY (salesID)
+	CONSTRAINT fk_test FOREIGN KEY (prodID) REFERENCE prod(prodID)
+	```
 
-## DML
+## DML  
+These commands are used to **add or remove or modify** the **data** within a table
 <a id = "delete"></a>
-- DELETE
+- DELETE  
+To remove all data from a table or portion of the data from a table
 	- [Difference between DELETE and TRUNCATE](#ddt)
 	```sql
 	DELETE FROM B32_Candidates
 	WHERE Candidate_ID = 1 and Candidate_Name IS NULL
 
-	```sql
+	-- Derived table
 	DELETE A
 	FROM (
 		SELECT *, ROW_NUMBER() OVER ( PARTITION BY Did ORDER BY Did) AS 'R'
@@ -246,7 +297,8 @@ DROP CONSTRAINT FK_Sales_Clinet
 	WHERE R > 1
 	```
 <a id = "insertinto"></a>
-- INSERT
+- INSERT  
+To add data to a table
 <a id="insertinto"></a>
 - INSERT INTO 
 	- copies data into a existing table  
@@ -288,8 +340,14 @@ DROP CONSTRAINT FK_Sales_Clinet
 	WHERE Candidate_ID = 1 and Candidate_Name IS NULL
 
 	```
+	```sql
+	INSERT INTO newtale
+	SELECT *
+	FROM oldtable
+	```
 
-- UPDATE
+- UPDATE  
+To modify data
 ```sql
 UPDATE B32_Candidates
 SET Candidate_Name = 'May'
@@ -313,27 +371,20 @@ GROUP BY TranDate) A
 JOIN DailySales DS
 ON A.TranDate = DS.SalesDate
 
-CREATE TABLE Salary (ID INT, CName VARCHAR(10), Salary INT)
-
-INSERT INTO Salary VALUES
-(1, 'Yiping', 25000),
-(2, 'Mounir', 45000),
-(3, 'Swornim', 40000)
-
-SELECT * FROM Salary
+-- Three methods to multiply columns 
+UPDATE Salary
+SET Salary = Salary * 1.05
 
 UPDATE Salary
-SET Salary = Salary*1.05
+SET Salary = Salary+(5/100) * Salary
 
 UPDATE Salary
-SET Salary = Salary+(5/100)*Salary
-
-UPDATE Salary
-SET Salary += 0.05*Salary
+SET Salary += 0.05 * Salary
 ```
 
 <a id = "truncate"></a>
-- TRUNCATE
+- TRUNCATE  
+To reomve all data from a table 
 	- [Difference between DELETE and TRUNCATE](#ddt)
 <a id = "ddt"></a>
 ![Different between delete and truncate](Pictures/SQL/Diff_Del-Trun.JPG) 
@@ -343,31 +394,21 @@ TRUNCATE TABLE B32_Candidates
 ```
 
 <a id="insertinto"></a>
-- INSERT INTO 
-	- copies data into a existing table  
-	- [Different between SELECT INTO and INSERT INTO](#dsi)  
 
-	<a id="dsi"></a>
-	![Different between SELECT INTO and INSERT INTO](Pictures/SQL/Diff_SelectInto-Insert.JPG) 
-	Return to [SELECT INTO](#selectinto), [INSERT INTO](#insertinto)  
-
-	```sql
-	INSERT INTO newtale
-	SELECT *
-	FROM oldtable
-	```
 		
 ## DQL
+These commands are used to **retrieve data** from an existing table/tables from a DB
 Data query language
 - Precedence   
-The order is following:  
+SQL Server order of execution of commands
 	1. FROM
 	2. WHERE
 	3. GROUP BY
 	4. HAVING
 	5. SELECT 
 	6. ORDER BY
-- SELECT  
+- SELECT    
+To list all columns or derived columns required from tables
 	- Filter columns in SELECT statement
 	- Column expressions in SELECT
 	```sql
@@ -378,28 +419,28 @@ The order is following:
 	2. Each row, add another row as 'I have to go home'
 	*/
 	```
+- TOP    
+To filter/select specific number of rows from the result.	
 
-- FROM
+- FROM  
+To get data from required tables
 <a id = "where"></a>
-- WHERE
+- WHERE  
+To filter rows with some conditions. It validates for boolean 
 	- row filters
 	- logical operators: AND, OR, NOT, BETWEEN, IN
 	- run conditions from left to right with same operators
 		- For AND, if the first is not meet, will not go the second condition, thus well affect the **performance running time**
-		- For OR, change the condition order will only impact the running time
-	- Operator precedence:
-
-		1. ~ (bitwise NOT)
-		2. 
+		- For OR, change the condition order will only impact the running time; The fisrt condition is meet ,the second one will not be went to
 	- The most clear mothed is to use () brackets
 	- [Difference between WHERE and HAVING](#dwh)
-- GROUP BY
+- GROUP BY    
+To group data based on certain columns
 	- use to show distinct values
 	- NULLs are considered as same in GROUP BY
-		- SELECT with group by, the columsn must be part of GROUP BY clause or aggregate functions
-	- Use functions in WHERE may go down the performance
+	- SELECT with group by, the columsn must be part of GROUP BY clause or aggregate functions
 
-	<a id = "having"></a>
+<a id = "having"></a>
 - HAVING
 	- Filter groups with conditions (must be able to compare)
 	- Data is fultered in buffer after all required data is pulled
@@ -410,7 +451,8 @@ The order is following:
 	<a id = "dwh"></a>
 	![different between where and having](Pictures/SQL/Diff_Where-Having1.JPG) 		
 	Return to [WHERE](#where), [HAVING](#having)
-- ORDER BY
+- ORDER BY  
+To sort data based on certain columns. Unless this command is used   
 	- It is the only that guarantees a result set which sorted other wise the data is not guaranteed to be displayed  in sorted order
 	- run after SELECT (so can and the only one clause use alias name in SELECT)
 	- Use as less as possible for save resource
@@ -440,12 +482,12 @@ Following kind of code might cuase issues
 
 	```
 	- is included  
-		```sql
-		-- EX.
-		SELECT * FROM TEST
-		WHERE BETWEEN 1 and 100 == >=1 and <=100  
-		>\>1 AND <100 == BETWEEN AND !=1 AND != 100 (just for INT)
-		```
+	```sql
+	-- EX.
+	SELECT * FROM TEST
+	WHERE BETWEEN 1 and 100 == >=1 and <=100  
+	>\>1 AND <100 == BETWEEN AND !=1 AND != 100 (just for INT)
+	```
 	- Not good to use in decimal
 		
 - IN	
@@ -471,24 +513,33 @@ for like, SQL server cannot use index efficiently and thus for some case will us
 	FROM TestWC
 	WHERE TotalDue NOT LIKE  '%.00'
 	```
-	- use to date (not recommanded)
+	- use to date (not recommended)
 	```sql
 	SELECT HireDate
 	FROM Employee
 	WHERE HireDate LIKE '2009%'
 	```
 
-- Wild Card  
-A wildcard character is used to substitute one or more characters in a string.
-	- %
-	- ^ (carat) or ! (not)
-	- [] (Square brackets)
-		- ( LIKE '[afs]%', 
-		- [a-m]% , 
-		- [a-M-]% the last one will inclueded ' - ')
-	- _  ( Underline, stands for any 1 charactor)
+- Wild Card      
+These are used to search **fuzzy data** or **partially known data**.     
+Wild cards are not recommended to use because it **cannot use indexes efficiently**. If the data size is small, it will not a problem.		  
+	- % percentile   
+	search operation can have 0 or more unknown characters. Ex: 'Alex%' gives out any thing starting with Alex such as Alexa, Alexandra, Alex, Alexia.  
+	- ^ (carat) or ! (not)  
+	It is used for NOT operator. Ex: '^[ABC]%' this will retrieves all values except those are not starting with A or B or C.  
+	- [] (Square brackets)  
+	Used for Range of values or multiple values. Ex: '[ABC]%' here list of values specified, so this retrieves info for all those records which starts with A or B or C. '[A-K]%' here range is specified, this retrieves info for all those records which starts with A until K.  
+		- ( LIKE '[afs]%',   
+		- [a-m]% ,   
+		- [a-M-]% the last one will inclueded ' - ')    
+	- \- hyphen  
+	- _  ( Underline/ under score  stands for any 1 charactor)  
+	It is used to replace 1 character. Ex: '_lex' it gives all the values for which 2nd character is l and third character is e and fourth is x. But anything for first character. Such as Alex, Blex, Clex.
 	- ESCAPE change the charactor sel meaning  
 	Can sign any un special character as ESCAPE charactor
+	> Not wild card for string but will use in SQL
+	> - \* asterisk
+	> - \# hash
 	```sql
 	SELECT *
 	FROM wildcards
@@ -501,22 +552,34 @@ A wildcard character is used to substitute one or more characters in a string.
 	WHERE descp LIKE '%[%]%' ESCAPE '*'
 	
 	```
-
 	
 ### JOIN
-- SELECT should indicate the the columns are in which table (mostly with ALIAS in FROM)
+- They are used to **combine data from multiple tables on a horizontal plane** (side - side). While retrieving data from JOINing tables there should be a condition that needs to be satisfied (this does not happen for cross JOIN)
+- SELECT should indicate the columns are in which table (mostly with ALIAS in FROM)
 - Will not match NULL values at join
-- Equal join
-- Non-Equal Join  
-
-AID > BID; AID < BID; AID < > BID
+- Columns with **different data types** can be used for JOINING conditions as long as they are **compatible**. Ex: If table has a column with VARCHAR and stored all INT values this can be used to JOIN with a column (on another table) which is INT data type. So SQL Server will implicitly convert VARCHAR to INT.
 - Can use metadata sys.foreign keys to find relationships
+- When there are duplicates in tables for JOINING columns it works like a Cartesian product for those duplicate values.
+- Multiple conditions can be used in ON clause. Ex: ON AID = BID AND AVAL = BVAL
+- In ON condition if = is not used for comparison it is called non-equi join.
+	- Equal join
+	- Non-Equal Join  
+	```sql
+	SELECT *
+	TABLE A JOIN B ON A.Date > B.Date
+	```
 - Type
 	- INNER JOIN
-	- OUTER JOIN
+	- OUTER JOIN  
 	Display every possible combination of all values in the designated / Cartesian product
-	- CROSS JOIN  
-	The following are derived not a real JOIN type
+		- LEFT
+		- RIGHT
+		- FULL 
+	- CROSS JOIN    
+		- CARTESIAN PRODUCT  
+		- Two tables need not be related
+		- Joining columns need not to have same names
+	The following are derived not a real JOIN type  
 	- Restricted Left/Right Outer  
 	Only unique left/right values (not match values)
 	```sql
@@ -557,7 +620,6 @@ AID > BID; AID < BID; AID < > BID
 
 	```
 
-
 	- Inner Join  
 	No matter table order
 	- Outer Join  
@@ -573,8 +635,6 @@ AID > BID; AID < BID; AID < > BID
 		1. OUTER JOINS (The best way, best performance)
 		2. Sub queries
 		3. Set operator
-
-
 
 ## Datatype
 The right datatype will imporve the performance
@@ -652,22 +712,35 @@ Date|
 		
 
 		
-db\_test
-create two files:
-1. db\_test.MDF 
-
-2. db\_test.LDF
-	- log shipping
-	- improve only  perations for 
-	- helps in back up
-	- disastor recorvery
-
-DML, DDL --> db\_test --> .LDF --> .MDF
-
-in delete, each delete will create one .LDF
-in truncate, only one or two .LDF (regarding to size)
 
 # Functions
+## Function Types
+1. System Functions
+	1. Conversion
+	2. Date Functions
+	3. String Functions
+	4. Window Functions - Any functions that use OVER key word, it is called as Window Functions.
+		- Ranking
+			- Rank
+			- Dense_Rank
+			- Row_Number
+			- NTile			
+		- Aggregate   
+		All Aggregate functions along with OVER clause
+		- Analytical
+			- LAG
+			- LEAD
+			- FIRST_VALUE
+			- LAST_VALUE
+	5. Mathematical
+	6. Meta data Functions
+	7. Aggregate Functions
+	8. NULL Functions
+2. User Defined Functions
+3. CLR Functions (Common Language Runtime these are available from SS 2012 and later)
+
+ 
+  
 | Usage -> FunctionType | SELECT | FROM | WHERE | GROUP BY | HAVING | ORDER BY | Nesting|
 | ------------- | ------ | ---- | ----- | -------- | ------ | -------- | -------|
 | Aggreagate | YES | NO | NO | NO | YES | YES | NO|
@@ -677,22 +750,20 @@ in truncate, only one or two .LDF (regarding to size)
 | NULL | YES | NO | YES | YES | YES | YES | YES|
 | Conversion | YES | NO | YES | YES | YES | YES | YES|
 
-## Aggregate  
-- Rules
-	1. With GROUP BY, after GROUP BY clause (HAVING, SELECT, ORDER BY) have only in GROUP BY columns and AggF(columns)
-	2. Create derive column, should give name with AS alis
-	3. Can oly filtered in HAVING and not limited to only what in SELECT
-	4. What data types does aggregate functions support:
-	5. Aggregate funtion cannot be **nested**: Ex: MAX(SUM(Sales)) --this not work
-	6. AggF is not mandatory to be included in GROUP BY
-		- Numeric
-		- INT
-		- Float
-		- Money
-		- Real
-		- Date ( Can use AggF except SUM, AVG)
-		- String ( Can use AggF except SUM, AVG)
-	7. Can be used in ORDER BY clause but not recommanded (recommand to aggF in select and alias a name
+## Aggregate Functions
+	- AggF avoids or **ignores null values** in a column while calculating
+	- AggF **cannot be nested** Ex: MAX(SUM(Sales))
+	- While using AggF with GROUP BY, only non aggregated columns that are listed in the GROUP BY can be used in the SELECT
+	- It is not mandatory to have AggF in SELECT if we use GROUP BY
+		1 . When you want to identify duplicates
+		2 . When you want distinct values in the result
+	- Order of columns in GROUP BY will not have any affect on the number of rows in result
+	- Other aggregate and non aggregate functionality columns listed in the SELECT has no affect on the number of rows returned
+	- We can use HAVING without AggF as long as the columns used for filtering are part of GROUP BY
+	- We can have multiple AggF in a single SELECT
+	- All Aggregate Functions can be used on String and Date data type columns except for SUM and AVGA on STRING
+	- Create derive column, should give name with AS alias (If not, will show no column name in display, but cannot be sub-query)
+	- Can be used in ORDER BY clause but not recommanded (recommand to aggF in select and alias a name
 	```sql
 	-- Work but not recommand
 	SELECT SalesPersonID
@@ -724,12 +795,9 @@ in truncate, only one or two .LDF (regarding to size)
 	Can use ORDER BY and TOP to get the min and max result
 	- MAX
 	- AVG
-	- COUNT
-	COUNT is the only aggregate function that will not ignore NULL values. With null values, avg() and sum()/count() is not equal, the formal one is larger
-	- WITH
-- Cateory
-	- System
-	- User
+	- COUNT    
+	If have NULL values: AVG(Sales) != SUM(Sales)/COUNT(*). But AVG(Sales) == SUM(Sales)/COUnt(Sales)  
+	If all columns are NULL values, COUNT(NullColumn) return 0. For other functions, SUM(NullColumn), return NULL  
 
 ## Date functions  
 Can be nested
@@ -835,10 +903,12 @@ Can be nested
 	IF more than 2 characters, only return the ASCII value of 1st one
 	- CHAR(ASCII value)
 	- STUFF(string, start, length, NewString) 
+
 ## Window functions
 OVER clause means using a window function
 - Types
-	- Ranking
+	- Ranking  
+	It is a type of WINDOW functions and it uses OVER clause to generate windows and provide a numbers for the data based the function used. They cannot be used in WHERE clause. They cannot be nested.
 	- Analytical (22 2012)
 	- Aggregate
 	- PARTITION BY 
@@ -847,6 +917,7 @@ OVER clause means using a window function
 
 - Ranking functions
 	- ROW\_NUMBER()
+	Provides a sequence of numbers starting from 1, based on sort columns, there will not be any gaps in numbers generated by this as it doesn't consider duplicate values for numbering. Used commonly for deleting duplicates.
 		- Best way to use to delete duplicates
 		- Give same rank number for duplicates
 		- Most recent Activity Based on DATE ( depends on business requirements)
@@ -860,11 +931,12 @@ OVER clause means using a window function
 		WHERE R > 1
 		```
 
-		<++>
-	- RANK()
+	- RANK()  
+	Provides a sequence of numbers starting from 1, based on sort columns. If there are duplicates in sort column RANK gives same RANK value to duplicate values. There is a possibility of gaps in RANKs (numbers) generated.
 		- Most recent Activity Based on DATE ( depends on business requirements)
 		- Don't use much because it skips values and hard to search
-	- DENSE\_RANK()
+	- DENSE\_RANK()  
+	Provides a sequence of numbers starting from 1, based on sort columns. If there are duplicates in sort column DENSE_RANK gives same number to duplicate values. Unlike RANK there is no possibility of gaps in numbers (DENSE_RANK values) generated. Commonly used for nth highest Salary, Sales etc.
 		- Most recent Activity Based on DATE ( depends on business requirements)
 		- Firt/Secend Highest 
 		- Do not skip ranks
@@ -906,6 +978,33 @@ OVER clause means using a window function
 	TRY_CONVERT(VARCHAR(100), BirthDate, 117)
 	FROM HumanResources.Employee
 	```
+
+## NULL Functions
+	- ISNULL  
+		- ISNULL(Expression to be decided, default value if NULL)  
+		- If ISNULL(NULL, NULL) return NULL, else return expression
+		- Takes 2 parameters and if first parameter is NULL then returns 2nd parameter (value) as result. If both are NULL then returns NULL. First Parameter decides the data type and length of the output. This function is SQL Server function (not ANSI).  
+	2. COALESCE  
+		- COALESCE(val1, val2, ...., val_n)
+		- returns the first non-null value in a list
+		- This is an ANSI function
+	```sql
+	SELECT COALESCE(NULL, NULL, NULL, 'test1', NULL, 'Example.com');
+	-- Return  'test1'
+	```
+
+	3. NULLIF 
+		- NULLIF(expr1, expr2)
+		-  Takes 2 parameters and returns NULL if both values are same, else returns first parameter value.  
+		```sql
+		SELECT NULLIF(10, 10)
+		-- return NULL
+		
+		SELECT NULLIF(20, 10)
+		-- return 20
+		
+		```
+
 	
 ## Parent child
  - DELETE child first then DELETE parent
@@ -963,43 +1062,51 @@ OVER clause means using a window function
 	DELETE FROM machineparts
 	```
 ## sub-query and view
-- sub-query
-	- Correlated sub-query ( should run every time)
-	- Non-co-related sub-query ( only run 1 once)
-	- The Inner query (nest) query execute first
-	- The inner query can execute independently
-	- Maximum 32 levels
-	- ORDER BY clause is possible when you use TOP
-	- If in the SELECT use sub-query, keep the child table outer, and parent table inner query( because if child in inner, will return more than one value) (If both are not unique, cannot use sub-query in SELECT as JOIN)
+### sub-query
+- It is considered query within a query. For simple sub query will have 2 parts, Outer query and Inner query. 
+- Sub queries can be **nested MAX up to 32 levels**
+- In Inner Query ORDER BY cannot be used unless TOP clause is used 
+- Usually performance of Sub Queries is low compared to JOINs.
+- If in the SELECT use sub-query, keep the child table outer, and parent table inner query( because if child in inner, will return more than one value) (If both are not unique, cannot use sub-query in SELECT as JOIN)
+
+1. Regular/General/Non-Co-related   
+	- The Inner query is executed first and passes the **value** to outer query if sub query is used in WHERE clause 
+	- Inner Query can be executed independently.   
+	- It can be used in WHERE conditions, SELECT, FROM, HAVING, ORDER BY but not in GROUP BY
+	- When used in WHERE clause 
+		-Inner query should return only 1 value with "=" (and other comparison operators)
+		-Can return only 1 column and can return multiple values if used with "IN", SOME, ALL, Any	
+	- When used in SELECT should return only 1 value
+	- When used with "FROM" sub query can return a table with 1 or more columns and 1 or more rows. (this is also called as derived table)		
+1. Co-Related    
+	Inner query **expects a value from outer query for each row of outer query**. Executes once for each row called by outer query. Usually it is not recommended to use because of its row by row retrieval and slows down the query.
 	- For running totals (accumulate)
 	```sql
 	-- Accumulate/ runningTotals
 	SELECT * (SELECT SUM(Sales)
-				FROM RunningTotals R2
-				WHERE R2.ID <= R1.ID
+			FROM RunningTotals R2
+			WHERE R2.ID <= R1.ID
 	FROM RunningTotals R1
 
 	-- rank without ranking functions
 	SELECT Sales, (SELECT COUNT(Sales)
-					FROM RunningTotals R2
-					WHERE R2.Sales > R1.Sales
-					)
+			FROM RunningTotals R2
+			WHERE R2.Sales > R1.Sales
+			)
 	FROM RunningTotals R1
 	```
-
-	
-- Views
-	- Purpose
-		- Security
-		- Add INDEX to view to improve performance of QUERY with in View
-		- Pysical table will not update, create view will update when underlying table changed
-	- Within the view
-		1. Only DQL
-		2. CREATE OR ALTER (avoid trigglers)
-	- Without the view
-		1. Reusability
-		2. Provide convenience in reporting & integration projects
-		4. When the underlying table (data referecing by VIEW) change, the result set in VIEW also changed
+### Views
+- Purpose
+	- Security
+	- Add INDEX to view to improve performance of QUERY with in View
+	- Pysical table will not update, create view will update when underlying table changed
+- Within the view
+	1. Only DQL
+	2. CREATE OR ALTER (avoid trigglers)
+- Without the view
+	1. Reusability
+	2. Provide convenience in reporting & integration projects
+	4. When the underlying table (data referecing by VIEW) change, the result set in VIEW also changed
 
 # System Procedure
 - Important
@@ -1148,12 +1255,12 @@ d.	DOB should be over 18 years
 ```sql
 CREATE TABLE Viewer(
 PersonID INT CONSTRAINT pk_viewer PRIMARY KEY,
-FirstName VARCHAR,
-MiddleName VARCHAR,
-LastName VARCHAR CONSTRAINT lastname_check (LastName LIKE '_%'),
+FirstName VARCHAR(100),
+MiddleName VARCHAR(100),
+LastName VARCHAR(100) CONSTRAINT lastname_check (LastName LIKE '_%'),
 DOB DATE CONSTRAINT dob_check ( DATEDIFF ( YY, DOB, GETDATE()) )
 Gender CHAR(1) CONSTRAINT gender_check CHECK (Gender IN ('M', 'F', 'N'),
-Email VARCHAR CONSTRAINT uk_viewer UNIQUE,
+Email VARCHAR(100) CONSTRAINT uk_viewer UNIQUE,
 StartDate DATE,
 CONSTRAINT Email_gmail_check CHECK( Email LIKE "_____%@gmail.com"),
 CONSTRAINT Email_yahoo_check CHECK ( Email LIKE "_____%@yahoo.com"),
