@@ -285,7 +285,7 @@ It defines how an entity is associated with itself or other entities
 	break to 2 1:M relations  
 	Student - Course, Author - Books
 		
-## Relationship Participation (optionality)
+## Relationship Participation (Optionality)
 Defines the role of engagement of an entity in a relation. It should be defined from Table A to Table B and Table B to Table A, in both directions. We need to define participation of both entities in the relation.n two tables(entities)
 - Two entities  
 - both directions

@@ -33,10 +33,10 @@ It is an installation of SQL Server on a machine (Windows/Linux).
 Session can be defined as an **interaction** of an application with SQL Server for a specific time (usually sessions time out if there is no activity after certain period) to perform an operation. User sessions start from 50 and above, system session will use SPID < 50.
 
 - Authentication
-	1. Windows   
-Information is passed from Windows system to SQL Server. This is most commonly used type.  
-	2. SQL Server   
- Has to provide Login and Password		    
+1. Windows   
+Use windows user who installed SQL to have access to the server as long as that acount is signed in . Information is passed from Windows system to SQL Server. This is most commonly used type.  
+2. SQL Server   
+Has to provide Login and Password		    
 
  - SCHEMA  
 - It is a database **object**, which is a **subset of a database**. 
@@ -77,6 +77,12 @@ DML, DDL --> db\_test --> .LDF --> .MDF
 
 in delete, each delete will create one .LDF
 in truncate, only one or two .LDF (regarding to size)
+
+- Computed column and Derived column
+	- These columns are actually in the table and do not have any data in them, instead they compute results based on other columns; Examples: Age, Year Working,  Full Name
+	- These are columns that don’t actually exist in the table, and are only formed for the duration of the syntax being performed; Derived columns can be anything, as long as you don’t need to keep the results of the string
+
+
 
 ## Connecting to different Server Categories
 1. Local Server 
@@ -196,10 +202,10 @@ They are used to enforce data integrity in the database.
 		- By default PK creates a Clustered Index on the table. This behavior can be changed to Non-Clustered Index 
 
 	- UNIQUE KEY  
-- Allows 1 NULL value and rest of the values have to be unique. 
-- By default UK creates a Non-Clustered Index. This default behavior can be changed. 
-- Maximun 999 unique keys per table. 
-- A UK with NOT NULL is considered as light weight PK as it creates a Non-Clustered Index 
+		- Allows 1 NULL value and rest of the values have to be unique. 
+		- By default UK creates a Non-Clustered Index. This default behavior can be changed. 
+		- Maximun 999 unique keys per table. 
+		- A UK with NOT NULL is considered as light weight PK as it creates a Non-Clustered Index 
 - UK and PK cannot be created without indexes. They have to have either clustered or non clustered indexes. pk/uk can be created using upto 16 columns.
 
 	- FOREIGN KEY
@@ -207,7 +213,9 @@ They are used to enforce data integrity in the database.
 		- FK maintains **Referential Integrity**. 
  		- FK can have NULLs (online sales  and store sales) 
  		- FK allows duplicate values (1-Many relationship). 
-		-  must have unique key in parent and  FK must have the same datatype
+		- must have unique key in parent and FK must have the same datatype
+		- Can not exist before PK
+		- Must be deleted before PK
 
 - OTHER CONSTRAINTS
 	- NULL-Ability (NULL, NOT NULL)
@@ -385,6 +393,7 @@ SET Salary += 0.05 * Salary
 <a id = "truncate"></a>
 - TRUNCATE  
 To reomve all data from a table 
+
 	- [Difference between DELETE and TRUNCATE](#ddt)
 <a id = "ddt"></a>
 ![Different between delete and truncate](Pictures/SQL/Diff_Del-Trun.JPG) 
@@ -526,7 +535,7 @@ Wild cards are not recommended to use because it **cannot use indexes efficientl
 	- % percentile   
 	search operation can have 0 or more unknown characters. Ex: 'Alex%' gives out any thing starting with Alex such as Alexa, Alexandra, Alex, Alexia.  
 	- ^ (carat) or ! (not)  
-	It is used for NOT operator. Ex: '^[ABC]%' this will retrieves all values except those are not starting with A or B or C.  
+	It is used for NOT operator. Ex: '\^[ABC]%' this will retrieves all values except those are not starting with A or B or C.  
 	- [] (Square brackets)  
 	Used for Range of values or multiple values. Ex: '[ABC]%' here list of values specified, so this retrieves info for all those records which starts with A or B or C. '[A-K]%' here range is specified, this retrieves info for all those records which starts with A until K.  
 		- ( LIKE '[afs]%',   
@@ -708,10 +717,6 @@ Date|
 26. nchar
 27. varchar (including varchar(max) )
 28. char
-3
-		
-
-		
 
 # Functions
 ## Function Types
@@ -875,7 +880,7 @@ Can be nested
 	- RTRIM() RTRIM( LTRIM() )
 	- CONCAT() 
 	- Difference between CONCAT() and +
-		1.  ++ will return NULL if any is NULL; CONCAT() will ignore NULL and retur other values
+		1. ++ will return NULL if any is NULL; CONCAT() will ignore NULL and retur other values
 		2. ++ can not plus number and string (should conversion number to string first); CONCAT() will automatically convert number to string
 	- SUBSTRING(string, start position, number of characters)
 	- LEFT(string, number of character to be sub)  
@@ -943,8 +948,10 @@ OVER clause means using a window function
 		
 ## Conversion Functions  
 - Types
-	- CAST - It is universal, that means it is available in most of the databases such as Oracle, MySQL
-	- CONVERT - Convert uses style parameter, it is a variation of CAST developed by MS; convert only in SQL server.
+	- CAST    
+	It is universal, that means it is available in most of the databases such as Oracle, MySQL
+	- CONVERT    
+	Convert uses style parameter, it is a variation of CAST developed by MS; convert only in SQL server.
 	```sql
 	SELECT CAST('01/01/2017' AS DATE)
 	SELECT CAST('01/33/2017' AS DATE)
@@ -957,11 +964,11 @@ OVER clause means using a window function
 	-- User try can avoid stop when have error when running
 	SELECT TRY_CAST('01/33/2017' AS DATE)
 
-	CREATE TABLE COnversionFNs 
+	CREATE TABLE ConversionFNs 
 	(BDay VARCHAR(25))
 	GO
 
-	INSERT INTO COnversionFNs values
+	INSERT INTO ConversionFNs values
 	('01/15/2018'),('02/29/2019'),('05/15/2016'),('09/31/2019'),('2/15/2018')
 
 	-- Use WHERE to avoid stop, same usage as TRY. Both are not good
@@ -980,30 +987,28 @@ OVER clause means using a window function
 	```
 
 ## NULL Functions
-	- ISNULL  
-		- ISNULL(Expression to be decided, default value if NULL)  
-		- If ISNULL(NULL, NULL) return NULL, else return expression
-		- Takes 2 parameters and if first parameter is NULL then returns 2nd parameter (value) as result. If both are NULL then returns NULL. First Parameter decides the data type and length of the output. This function is SQL Server function (not ANSI).  
-	2. COALESCE  
-		- COALESCE(val1, val2, ...., val_n)
-		- returns the first non-null value in a list
-		- This is an ANSI function
+- ISNULL  
+	- ISNULL(Expression to be decided, default value if NULL)  
+	- If ISNULL(NULL, NULL) return NULL, else return expression
+	- Takes 2 parameters and if first parameter is NULL then returns 2nd parameter (value) as result. If both are NULL then returns NULL. First Parameter decides the data type and length of the output. This function is SQL Server function (not ANSI).  
+- COALESCE  
+	- COALESCE(val1, val2, ...., val_n)
+	- returns the first non-null value in a list
+	- This is an ANSI function
 	```sql
 	SELECT COALESCE(NULL, NULL, NULL, 'test1', NULL, 'Example.com');
 	-- Return  'test1'
 	```
-
-	3. NULLIF 
-		- NULLIF(expr1, expr2)
-		-  Takes 2 parameters and returns NULL if both values are same, else returns first parameter value.  
-		```sql
-		SELECT NULLIF(10, 10)
-		-- return NULL
-		
-		SELECT NULLIF(20, 10)
-		-- return 20
-		
-		```
+- NULLIF 
+	- NULLIF(expr1, expr2)
+	-  Takes 2 parameters and returns NULL if both values are same, else returns first parameter value.  
+	```sql
+	SELECT NULLIF(10, 10)
+	-- return NULL
+	
+	SELECT NULLIF(20, 10)
+	-- return 20
+	```
 
 	
 ## Parent child
@@ -1061,8 +1066,8 @@ OVER clause means using a window function
 
 	DELETE FROM machineparts
 	```
-## sub-query and view
-### sub-query
+## Sub-Query and View
+### Sub-Query
 - It is considered query within a query. For simple sub query will have 2 parts, Outer query and Inner query. 
 - Sub queries can be **nested MAX up to 32 levels**
 - In Inner Query ORDER BY cannot be used unless TOP clause is used 
@@ -1109,75 +1114,89 @@ OVER clause means using a window function
 	4. When the underlying table (data referecing by VIEW) change, the result set in VIEW also changed
 
 # System Procedure
-- Important
+## Important
 Retrieves the info about an object  
-	- EXEC SP\_HELP '[dbo].[uspGetBillOfMaterials]'  
-	Gives out the definition of the user defined objects and system objects (Not for table and system functions)
-	- EXEC SP\_HELPTEXT '[dbo].[uspGetBillOfMaterials]'
-	- EXEC SP\_HELPTEXT 'SP\_HELP'
-	- EXEC SP\_HELPTEXT '[HumanResources].[Employee]'
-	- EXEC SP\_HELPTEXT '[dbo].[fnExtCharIndex]'
-	- --Provides info about a specified database or all the databases (DB name is optional)
-	- EXEC SP\_HELPDB 'Training\_SQL'
-	- EXEC SP\_HELPDB 'AdventureWorks2012'
-	- EXEC SP\_WHO2
-	- EXEC SP\_WHO  
-	For SP\_WHO OR  SP\_WHO2, there is 'blk by' columns means for a session, it is block(wait other session to run and finished) by other session number. Can find the session need to kill.
-	- EXEC SP\_EXECUTESQL N'SELECT * FROM Person'
-	```sql
-	EXEC SP\_EXECUTESQL N'SELECT * FROM Person'
-	```
-	Why? Use as dynamical execute query
-	- EXEC SP\_LOCK
-	- EXEC SP\_RENAME 'B27\_ColumnName.newid', 'ID', 'COLUMN';
-	
-	```sql
-	EXEC SP\_RENAME 'Table', 'OldColumnName', 'NewColumnName'
-	```
-	- EXEC SP\_RENAMEDB 'Training\_SQL', 'Training\_SQL2'
-	- --What are the different objects that depend on a given object
-	- EXEC SP\_DEPENDS '[dbo].[uspGetBillOfMaterials]'
-
-- Good to remember
-	- EXEC SP\_WHO 'ACTIVE' --login' | session ID | 'ACTIVE'
-	- EXEC SP\_ADDTYPE PhoneNo, 'varchar(13)', 'NOT NULL'
-	- EXEC SP\_DROPTYPE 
-	- EXEC SP\_COLUMNS 'Emp'
-	- --Provides info about indexes on a Table or View
-	- EXEC SP\_HELPINDEX '[HumanResources].[Employee]'
-	- --To attch .df, .ldf and .ndf files to a server instance
-	- EXEC SP\_ATTACH\_DB @dbname=  'AdventureWorks2008', @filename1= 'C:\.........'
-	- EXEC SP\_DETACH\_DB
-	- --Provides the info about the files associated to DB .mdf, .ldf, .ndf
-	- EXEC SP\_HELPFILE
-	- --Provides the information about language, months, days, start of the week
-	- EXEC SP\_HELPLANGUAGE English;
-	- EXEC SP\_HELPSERVER
-	- EXEC SP\_HELPSORT
-	- EXEC SP\_BINDRULE
-	- EXEC SP\_UNBINDRULE
-	- EXEC SP\_HELPTRIGGER '[Person].[Password]'
-	- EXEC SP\_SPACEUSED 'Employee'
+- EXEC SP\_HELP   
+metadata for the table  
+Gives out the definition of the user defined objects and system objects (Not for table and system functions); 
+```sql
+EXEC SP\_HELP '[dbo].[uspGetBillOfMaterials]'  
+```
+- EXEC SP\_HELPTEXT   
+syntax for a saved object
+```sql
+EXEC SP\_HELPTEXT '[dbo].[uspGetBillOfMaterials]'
+EXEC SP\_HELPTEXT 'SP\_HELP'
+EXEC SP\_HELPTEXT '[HumanResources].[Employee]'
+EXEC SP\_HELPTEXT '[dbo].[fnExtCharIndex]'
+--Provides info about a specified database or all the databases (DB name is optional)
+```
+- EXEC SP\_HELPDB   
+metadata fro database
+```sql
+- EXEC SP\_HELPDB 'Training\_SQL'
+- EXEC SP\_HELPDB 'AdventureWorks2012'
+```
+- EXEC SP\_WHO2  
+- EXEC SP\_WHO    
+Information on users, sessions, and servers  
+For SP\_WHO OR  SP\_WHO2, there is 'blk by' columns means for a session, it is block(wait other session to run and finished) by other session number. Can find the session need to kill.
+- EXEC SP\_EXECUTESQL 
+Dynamical execute query
+```sql
+EXEC SP\_EXECUTESQL N'SELECT * FROM Person'
+```
+- EXEC SP\_LOCK
+- EXEC SP\_RENAME 
+- EXEC SP\_RENAMEDB 
+```sql
+EXEC SP\_RENAME 'B27\_ColumnName.newid', 'ID', 'COLUMN';
+EXEC SP\_RENAME 'Table', 'OldColumnName', 'NewColumnName'
+EXEC SP\_RENAMEDB 'Training\_SQL', 'Training\_SQL2'
+```
+- EXEC SP\_DEPENDS 
+What are the different objects that depend on a given object
+```sql
+EXEC SP\_DEPENDS '[dbo].[uspGetBillOfMaterials]'
+```
+## Good to remember
+- EXEC SP\_WHO 'ACTIVE' --login' | session ID | 'ACTIVE'
+- EXEC SP\_ADDTYPE PhoneNo, 'varchar(13)', 'NOT NULL'
+- EXEC SP\_DROPTYPE 
+- EXEC SP\_COLUMNS 'Emp'
+- --Provides info about indexes on a Table or View
+- EXEC SP\_HELPINDEX '[HumanResources].[Employee]'
+- --To attch .df, .ldf and .ndf files to a server instance
+- EXEC SP\_ATTACH\_DB @dbname=  'AdventureWorks2008', @filename1= 'C:\.........'
+- EXEC SP\_DETACH\_DB
+- --Provides the info about the files associated to DB .mdf, .ldf, .ndf
+- EXEC SP\_HELPFILE
+- --Provides the information about language, months, days, start of the week
+- EXEC SP\_HELPLANGUAGE English;
+- EXEC SP\_HELPSERVER
+- EXEC SP\_HELPSORT
+- EXEC SP\_BINDRULE
+- EXEC SP\_UNBINDRULE
+- EXEC SP\_HELPTRIGGER '[Person].[Password]'
+- EXEC SP\_SPACEUSED 'Employee'
 
 - Some more research
-	- EXEC SP\_CONFIGURE
+- EXEC SP\_CONFIGURE
+- SP\_HELPCONSTRAINT 
+```sql
+-- Gives the info of all the constraints on a given object
+EXEC SP\_HELPCONSTRAINT 'HumanResources.Employee'
+```
+- SP\_LOCK
+rename column name
 
-- Gives the info of all the constraints on a given object
-	- EXEC SP\_HELPCONSTRAINT 'HumanResources.Employee'
-	```sql
-	EXEC SP\_HELPBD
-	EXEC SP\_WHO2
-	```
-	- SP\_LOCK
-	rename column name
+- SP\_DEPENDS
+Find all tables depend (child table) on this table. Find what tables will be impact if change this table in structure change.
 
-	- SP\_DEPENDS
-	Find all tables depend (child table) on this table. Find what tables will be impact if change this table in structure change.
 
- 
 
 # Exercise
-### LIKE
+## LIKE
 ```sql
 
 CREATE TABLE PERSON(
@@ -1218,8 +1237,8 @@ WHERE ReleaseDate BETWEEN '2018-01-01' AND '2018-12-31'
 GROUP BY ProdHID, ProdHouse
 
 ```
-### Exercise
 
+## Others
 ```sql
 --Find Employees who are retiring on Weekend assuming age of retirement is 60
 --Using DATENAME function
@@ -1365,8 +1384,6 @@ GROUP BY M.MovieID
 
 ![Evaluation.png](Pictures/SQL/Evaluation.png) 
  
-
-
 # Research Questions
 1. Can you add a column in between existing columns.
 	Default will add at the end
@@ -1382,8 +1399,8 @@ GROUP BY M.MovieID
 
 	ALTER TABLE test ADD COLUMN c INT AFTER* a
 	```
- TO be solved:
-	-Schreenshot TDP model P6 rules on google drive
-	-Cascade TDP model function
+# Questions tO be solved:
+	- Schreenshot TDP model P6 rules on google drive
+	- Cascade TDP model function
 	- Difference between PK and FK
 	- WITH clause
