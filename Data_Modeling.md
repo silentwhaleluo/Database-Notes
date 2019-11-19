@@ -67,10 +67,6 @@ Budget, strategy
 - Size of Team
 
 	
-#### Research Questions:
-1. What is your style of gathering requirements?
-2. How do you prepare 
-3. What is GAP analysis
 
 #### Documents:
 - FRD,SDS, SDD, TDS, TDD  
@@ -429,6 +425,10 @@ It refers to maintenance of **data quality standards** according to business nee
 
 
 
+# Research Questions:
+1. What is your style of gathering requirements?
+2. How do you prepare 
+3. What is GAP analysis
 
 ## Assessment: Hospital Management, Health Insurance leases, Auto Insurance
 1. BRD - No more than 2 paragraphs
