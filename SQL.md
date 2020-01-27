@@ -142,15 +142,26 @@ F5 : run
 
 ## INDEXES
 
-- Pages  
+### Pages  
 SS data is stroed in from of pages
-	- Properties
-		- one record cannot store across page
-		- One page will not save data from different tables
-		- Data (for each page, the storage volume is 8kb) How many records can be stored in this page, depends on the size of each records. If a record beyond 1 page(8060 bytes), the table cannot be create ( we can seperate columns to different tables to avoid some of this problem. That's why the maximun limit for CHAR is 8000 CHAR(8000) )
-	- IAM (index allocation map)
+- Properties
+	- one record cannot store across page
+	- One page will not save data from different tables
+	- Data (for each page, the storage volume is 8kb) How many records can be stored in this page, depends on the size of each records. If a record beyond 1 page(8060 bytes), the table cannot be create ( we can seperate columns to different tables to avoid some of this problem. That's why the maximun limit for CHAR is 8000 CHAR(8000) )
+
+- Heap  
+A table without a clustered index.
+
+- Types of pages
+	- Data Pages   
+	Data is stored in the pages. Used by Clustered Indexes and Heaps  
+	- Index Pages   
+	Stores pointers to the data or other pages. Used by Clustered and Non Clustered Indexes.  
+	- IAM Pages (Index Allocation Map)
+	Stores the information about pages used by tables (CI or Heap). Used by DB engine.   
 	For index and tables ( for every object store data), a page store the table and pages address 
-	- Index page
+	- LOB Pages   (large object)
+	Data is stored in the pages. Size of the page is 2 GB. Used by columns which have VARCHAR(MAX), NVARCHAR(MAX), IMAGE, TEXT, and Column Store Index.  
 - Components of each page
 	1. Header  
 		- Page No
@@ -159,41 +170,97 @@ SS data is stroed in from of pages
 		- next/prev Page No. ( page number for the same table)
 	2. Data
 	3. Offset  
-- Extend
-	- When inset data, server will allocate to pages beside the exists data page, but if it's occpuied (mixed extend) will allocate as close as possible
-	- Types
-		- Uniform  
-		One extend only have data from only 1 table
-		- Mixed  
-		One extend have data from different tables
-		Stored the accumulate size of each records( Ex. 100, 400, 600 Means 1st record is 100, 2nd is 300 and 3rd is 200)
-- Table can
+
+### Extend
+When inset data, server will allocate to pages beside the exists data page, but if it's occpuied (mixed extend) will allocate as close as possible
+
+- Types of extend
+	- Uniform  
+	One extend only have data from only 1 table
+	- Mixed  
+	One extend have data from different tables
+	Stored the accumulate size of each records( Ex. 100, 400, 600 Means 1st record is 100, 2nd is 300 and 3rd is 200)
+
+### Scan mode
+- Table can  (with out CI)
+Usually this is not good for data retrieval performance.
+	-When SQL Server has to go through all pages that belong to table (table does not have any indexes) to retrieve data it is called Table Scan. 
 	- When table can, server first go IAM, from IAM, find every record saved in the IAM
 	- For every small data (Only several pages), it's best because create and find from index will cost resource
-- Index works
-	- B-tree (balance tree)
-		- Root nodes (1 page) (8060/(8+7) = 537.33)
-		Only save index of leaves 
-		Save the last record of every pages
-		Once use index, find roots from IAM, then will not go IAM and go along with b-tree structers
-		Stored pages index and key values (do not need to have key constraints on table)
-		- Intermediate  ( multiple pages)
-		When the data number exceed one pages's volumns of root data, then need intermediate level to save the pagesID and sorted columns. The root is save the PagesID of intermediate and last id of each intermediate leaves)
-		- leaf level ( multiple pages )
-- Index type
-### Clustered
-- Table scan (without any index)
-	- Operation
+	- Steps
 	1. Find IAM
 	2. From IAM find the RID to fetch record
 	3. Go back to IAM to find another
 For scan, the table scan is silimar with index scan, and the table scan will be even a little bit faster
 Pysically stores and sorts data (because cannot store in the sorts on different directions)
+
+- CI Scan: 
+	-If SQL Server has to read through all the leaf pages of the Index to retrieve required	data it is called as CI Scan. Usually this is better than Table Scan but not the best way to bring data.
+
+- CI Seek:
+	- If SQL Server knows exactly (in which page) where the data is and reads only those leaf pages which has required data it is called CI Seek. Usually this is the best way to bring data. This happens when the column used for Index is used in WHERE clause.
+
+### Index concepts
+
+- Index works
+
+- B-tree (balance tree)  
+	- Root nodes (1 page) (8060/(8+7) = 537.33)  
+	Only save index of leaves   
+	Save the last record of every pages  
+	Once use index, find roots from IAM, then will not go IAM and go along with b-tree structers  
+	Stored pages index and key values (do not need to have key constraints on table)
+		- Intermediate  ( multiple pages)
+		When the data number exceed one pages's volumns of root data, then need intermediate level to save the pagesID and sorted columns. The root is save the PagesID of intermediate and last id of each intermediate leaves)
+		- leaf level ( multiple pages )
+
+- Index type
+	1. Clustered
+		1.1 Unique
+		1.2 Non Unique
+	2. Non Clustered
+		2.1 Unique
+		2.2 Non Unique
+
+- Properties
+	- can create CI or NCI on PK
+	- PK musted be create a CI or NCI but cannot without any index
+	- Can create index **WITHOUT** UP and PK
+	- Can create CI on VARCHAR, DATE
+	- Index can create on multiple columns (composite index)
+	- When create index, we can define the order
+	```sql
+	-- Create a CI which stores data sorted from Z-A?
+	CREATE CLUSTERED INDEX IX_Table_A 
+	ON Table_A (Name DESC, City)
+	
+	```
+- Disadvantages of index
+![Dis index](Pictures/SQL/Diff_Index-Disadv.JPG) 
+
+
+### Index numbers
+|Index type|Number|Maximun columns|
+|----------|------|---------------|
+|CI|Only 1|16 cols or 900 Bytes|
+|NCI (2014 before)|999|16 cols or 900 Btyes|
+|NCI (2016 Later)|999|32 cols or 1700 Btyes|
+|Covering|-|1023 cols|
+|Full Text Index|1|1024 cols|
+|Column store index|1|1024 cols|
+
+<a id="CI"></a>
+### Clustered Index
+- Properties
+	1. These are indexing structures which **hold actual data**. when a CI is created the table is called Clustered Table (heap table not exists). Data is no longer in Table/Heap it is moved into the Balanced-Tree or B-Tree structure (every Index will have a B-Tree)
+	2. We can have only one CI. Because data is physically stored and sorted and we can sort data in 1 direction.
+	3. Data is stored in leaf level.
+	4. Every CI will have a root node. that points to intermediate nodes (if there are any) or points to data (leaf node).
 - Clusterd index scan (when do not have filter)
 - Clusterd index seek (when have filter)
 will pull whole records finded, now matter only part of columns in SELECT
 - Syntx
-	- Max has 32 columns or 900B for one index 
+	- Max has **32 columns** or 900B for one index 
 	For variable datatype like VARCHAR, we can create the index when the maximum data size of this datatype is larger than 900B, but if we insert a data larger than 900B, this insertion will fail
 	- define the order
 - Clusterd seek
@@ -237,6 +304,7 @@ WHERE Name = 'sid'
 
 	
 ### Non clustered
+<a id="NCI"></a>
 Logicaliy sort data
 Alloacate new pages to only save sorted columns and the RID (Extend:Page:Offset) address of data in nonclustered index leaves
 The root save the last record in the sorted columns
@@ -269,16 +337,33 @@ FROM Batch
 -- Use NCI Scan because all info is saved in NCI and NCI is small then scan whole table
 
 ```
+- [Difference](#diffCINCI) between [CI](#CI) and [NCI](#NCI)
 ### Options of Non clustered
 - Covering index  
 Becuase from NCI to give more info other than NCI( RID look up and Key look up) is expensive. We can add other information to the NCI only for data retrieval, so avoid the expensive look up. Need more storage and update togather when table change
 	- The covering columns will not in the root or intermediat or intermediatee, only in leaves
+	- Covering Index is a type of (option provided) non clustered index. Purpose of it is to cover columns that are **frequently used in the select statement** of a query  for a given non clustered index search. So that we can **avoid RID or Key look ups**, as they are **expensive operators**. 
+	- It can cover **up to 1023 columns**. 
+	- You have to use INCLUDE key word for adding columns to Index. Columns included are not used in SORTING, so you don't see these column values in ROOT and INTERMEDIATE levels.
+	```sql
+	CREATE INDEX IX_Sales_FilterIndex_OrderDate
+	ON Sales_FilterIndex(OrderDate)
+	INCLUDE (SalesOrderID, Total, OrderQty)
+	WHERE OrderDate >= '1/1/2014' AND OrderDate <= '12/31/2014'
+	```
+
 - Filtered index  
-It is a variation or option available with NCI, where a developer can filter data for which he/she can index the data
+	- Filtered Index With FILTER option index is created on the data that is filtered or index on subset of data of the table. 
+	- It is a variation or option available with NCI, where a developer can filter data for which he/she can index the data
+	```sql
+	CREATE INDEX IX_Sales_FilterIndex_OrderDate
+	ON Sales_FilterIndex(OrderDate)
+	WHERE OrderDate >= '1/1/2014' AND OrderDate <= '12/31/2014'
+	```
 	- Advantages  
 		1. Improve performance on the part of data with index, and because the index range is less, seek is faster than full index(Although for data without index, the seek is slower)
-		2. Easy maintenance because the index size is small
-		3. Specific Scenario: Multiple NULLs + remanining values unique
+		2. As Index is created on subset of data, the index size and **depth of Index** is less, so **maintenance** is easier
+		3. Specific Scenario: **Multiple NULLs + remanining values unique**
 			When we want to make unique constraint, it only allow 1 NULL, but we want to keep multiple NULL and unique
 			```sql
 			-- We can also achieve this also by PROCEDURE, TRIGGER
@@ -298,51 +383,98 @@ It is a variation or option available with NCI, where a developer can filter dat
 		2. Certain functions and operators like BETWEEN are not supported in WHERE condition
 	- Senerio  
 		- Most search is in only part of data (e.g.For bank, the most recent 1 year records)
-```sql
-CREATE INDEX IX_Sales_FilterIndex_OrderDate
-ON Sales_FilterIndex(OrderDate)
-INCLUDE (SalesOrderID, Total, OrderQty)
-WHERE OrderDate >= '1/1/2014' AND OrderDate <= '12/31/2014'
+	```sql
 
-SELECT SalesOrderID, Total, OrderQty, OrderDate
-FROM Sales_FilterIndex
-WHERE OrderDate >= '3/12/2014' AND OrderDate <= '5/15/2014'
--- Execute plan should only NCI seek
-```
+	SELECT SalesOrderID, Total, OrderQty, OrderDate
+	FROM Sales_FilterIndex
+	WHERE OrderDate >= '3/12/2014' AND OrderDate <= '5/15/2014'
+	-- Execute plan should only NCI seek
+	```
+- [Difference](#diffCINCI) between [CI](#CI) and [NCI](#NCI)
+<a id="diffCINCI"></a>
+![Diff CI and NCI](Pictures/SQL/DIff_CI-NCI_1.JPG) 
 
 ### Full text index
-- Properties
-	1. Only 1 FTI
-	2. At least have 1 unique identifier in the table (PRIMARY KEY or UNIQUE KEY (these key will definitly have a clustered or non clustered index)
-	3. Can use some part of regular expression
-- Why we want to use full text index
+- Limitations of CI\NCI on CHARACTER data (Why we want to use full text index)
 	- CI and NCI only have few storage (CI 900, NCI 1700)
 	- CI only sort the text character by character (search slow and sort slow)
-	- Finde inflectional words (run ran)
-	- Synonyms (university and school, 2k and 2000)
+	- Cannot find inflectional words (run and ran) and synonyms (university and school)
+	
+- Properties
+	- Can be created on VARCHAR(MAX) or silimar
+	- Only 1 FTI
+	- At least have 1 unique identifier in the table (PRIMARY KEY or UNIQUE KEY (these key will definitly have a clustered or non clustered index)
+	- Can use some part of regular expression
 
-- How full text index works
-	1. Create catalog  
-	Logical container, hold logical properties. E.X. for one catalog, can define case sensitive
+- How full text index works (steps)
+	1. Create catalog   
+	Defines set of properties common to all the indexes created under this catalog.  
+	Logical container, hold logical properties. E.X. for one catalog, can define case sensitive  
 	2. Create full text index  
-	3. Populate index
+	3. Populate Index  
+	Is a process of populating the index with tokens or data keys. It can be done manually later or while creating the index.
 		1. Seperate the strings to tokens
 		2. hash tokens to bag of words model (hash, word, key)
 		3. Internally SS uses 'Thesaurus' to match synonyms
 		4. Define own thesaurus
 		5. Noise words/stop words (will ignore in the full text index, when seek these words, system will use table scan (like))
+CONTAINS and FREETEXT are 2 keys words that can be used to filter data from the table with FULL TEXT INDEX.
+
+- 2 types of Search syntax
+	- **CONTAINS** (exec or fuzzy search): It can be used for exact searches, or fuzzy search (using \*). Also matches to phrases (use " at the beging and end), words within a certain distance (use **NEAR** key word)of one another, or weighted matches (use **WEIGHT** key word). It can be used to search for words with tenses based search word (use **INFLECTIONAL** key word). Ex: Go can retrieve GOING, GONE etc. 
+	- **FREETEXT** (synonyms): It is used for predicate searches for values that match the meaning and not just the exact wording of the words in the search condition. 
 
 ### Indexed view
-1. Will physically save index and data in the view
-2. When the inferenced data updated, view will also updated
-3. Create two CI on a save table
-4. If want to create index on view, should must create a CI ( cannot create NCI of view without CI)
-5. Searching on view, it will go to view or table
-6. View should be SCHEMABINGDING
-7. CTE and DERIVED tables are not allowed when using indexes on VIEW
-8. When using any aggregate functions in VIEw's definition COUNT\_BIG(\*) (only count \*) is required 
+- Properties
+	- Will physically save index and data in the view
+	- While searching for data on the VIEW/Table SQL Server can use indexes either from VIEW or Table.
+	- When the inferenced data updated, view will also updated
+	- Create two CI on a save table
+	- If want to create index on view, should must create a CI ( **cannot create NCI of view without CI**)
+	- Searching on view, it will go to view or table
+	- View should be **SCHEMABINGDING**
+	- There should be a column or set of columns that should have **unique identifier**
+	- **CTE and DERIVED** tables are **not** allowed when using indexes on VIEW
+	- When using any aggregate functions in VIEw's definition COUNT\_BIG(\*) (only count \*) is required 
+- When we want to use indexed view scenarios  
+	1. When we want to have 2 CIs on same data set
+	2. If an organization doesn't have cubes and want to generate some **reports** based on multiple tables with some calculations and other functions. Reports developed using VIEWs and SP's might be slow, to solve this situation we can create a VIEW retrieving data from multiple table and calculations and index it, so that data is pulled directly from B Tree of VIEW not from underlying tables.
+	3. In some organizations reports are pulled from cubes but for some reason if they cannot access cubes (maintenance, bugs, network issues) then indexed views are used as back up option for generating reports.
+
+- Disadvantages
+	- Indexes take additional disk space
+	- indexes slow down DML
 ### Column Store Index
 Column Store Index is type of index introduced in 2012. Unlike traditional (Row Store Index) the data in the CSI is stored in columnar format. Based the size of the data in each column SS creates segments which can hold upto 1M rows. This segments are highly compressed to reduce I/O operations and storage. A column can have multiple Segments if the data is huge (typically more than 1M distinct values). Each segment will have a Hash Dictionary which shows details related to the segment.
+
+- Versions of CSI
+	- 2012 Non updatable (No DML), Non clustered
+	- 2014 have clustered CSI, and updatable (no other index can create with CCSI)
+	- 2016 updatable non clustered CSI (row stored NCI are possible when clustered CSI is created)
+
+|Type|2012|2014|2016|
+|----|----|----|----|
+|Read-Only NC CSI|Yes|Yes|Yes|
+|Updateable NC CSI|||Yes|
+|Updateable Clustered CSI||Yes|Yes|
+|Add NCI with Clustered CSI|||Yes|
+
+- Limitations of RSI (Why we need CSI)
+	- Buffer Management  We have to retrieve all columns to buffer although only part of columns we need
+	- Higher I/O costs as the data is stored in 8 pages
+	- Lower compression because duplicate will depends on whole records
+	- Batch mode is not possible as individual record is fetched
+	- DML operations might slow down as the structure of the index should altered on the fly (runtime)
+
+- How CSI works
+	1. Data is stored in columnar format
+	2. Each column is divided into SEGMENT, and one column can have multiple segments
+	3. A segment max can hold 1M unique values (may be have more than 1M records because of compression of duplicate)
+	4. Save segments to LOB base size of segments (Many saved in multiple LOBs)
+	5. Tuple number (Row group)
+	6. For query SELECT col1, col2 FROM table,will read the only few LOB. (less I/O compaire to regular page because regular page is only 8k so same size data will save in much more numbers of pages). Then,  will only pull only col1 and col2 in buffer 
+
+	 
 
 - Advantages of CSI
 1. Retrieving data in bulk is fast
@@ -352,24 +484,31 @@ Column Store Index is type of index introduced in 2012. Unlike traditional (Row 
 
 - Limitations of CSI
 1. Good for bulk data retrieval, so pinpointed search is slow.
-2. DML operations are not allowed on Non Clustered CSI
+2. DML operations are not allowed on Non Clustered CSI (untill 2014)
 3. DML operations on Clustered CSI is not straight forward process like traditional indexes.
+4. Does not support some data types such as IMAGE, XML
+
+- Difference bwteen CSI and RSI
+![Diff CSI RSI](Pictures/SQL/Diff_CSI-RSI.JPG) 
 
 ### Types
 - Composite index
 	Sort the first columns if we have duplicates on first columns, sort second columns
 	If we search the second column in composite index, go CI scan or NCI san
+	At most 16 columns in composite
 - Clustered index, Nonclustered index
 - Row store, column store
 - Full text index, indexed views (Materialized views)
-- XML index for XML data type
-- Spatial index for spatial data types
+- XML index 
+for XML data type
+- Spatial index 
+for spatial data types
 - Column store index
 
 ### Index fragmentation
 - Types of index fragmentation
 	- Internal Fragmentation   
-	If a leaf level page in an index is not filled completely or to its capacity, it is called a memory bubble or internal fragmentation. When there are some DML operations on the table with indexes, SQL Server has to split the page or reassign a new page (based on type of DML) to make sure that the data is sorted as per the indexing column, that causes internal fragmentation.
+	If a leaf level page in an index is **not filled** completely or to its capacity, it is called a **memory bubble** or internal fragmentation. When there are some DML operations on the table with indexes, SQL Server has to split the page or reassign a new page (based on type of DML) to make sure that the data is sorted as per the indexing column, that causes internal fragmentation.
 
 	- External Fragmentation   
 	When the logical order of the data doesn't match with physical order of the data. That is the data in the pages are not in sequence. Page split is one of the reasons along with unavailability of immediate page for data load.
@@ -383,9 +522,15 @@ Column Store Index is type of index introduced in 2012. Unlike traditional (Row 
 	- External fragementation
 		- rebuild
 
+- How to identify Fragmentation:
+	1. GUI - Select the index properties and look for fragmentation section
+	2. Using DBCC SHOWCONTIG command
+	3. Using system management view: sys.dm\_db\_index\_physical\_stats DMV - Best option
+	
 - Components
 	- Index\_level: The maxinum number is root, 0 is leaves, others are intermediate
 	- AveragePageDensity: How much page full
+
 - Solve index fragmentation
 	- reorganize  
 	shuffle data in the used pages, handle most internal problem, and a little external (relatively faster)
@@ -442,7 +587,7 @@ ALTER TABLES tablename
 ADD tablename datatype constraints
 -- add constraints
 ALTER TABLE sales
-ALTER COLUMN salseID INT NOT NULL;
+ALTER COLUMN salseID INT NOT NULL; -- must make it NOT NULL first and then create primary key constraint
 
 ALTER TABLE sales
 ADD CONSTRAINT pk_sales PRIMARY KEY (SalesID)
@@ -1104,23 +1249,6 @@ Date|
 		- Aggregate   
 		All Aggregate functions along with OVER clause
 		- Analytical
-			- LAG
-			Fetch values in the previous row(s) based on SORT operation
-			- LEAD  
-			Fetch values in the next row(s) based on SORT operation
-				- 3 parameters 
-				1. Scalar expression/column
-				2. Offset number of rows (optional and default 1)
-				3. Default in case of there is matching offset number for record (optional and default NULL)
-				```sql
-				SELECT OrderDate, TotalDue, LEAD(TotalDue) OVER(ORDER BY OrderDate)b
-				FROM Adventureworks. Sales. SalesOrderHeader
-				```
-
-				
-
-			- FIRST_VALUE
-			- LAST_VALUE
 	5. Mathematical
 	6. Meta data Functions
 	7. Aggregate Functions
@@ -1143,9 +1271,9 @@ Date|
 - AggF avoids or **ignores null values** in a column while calculating
 - AggF **cannot be nested** Ex: MAX(SUM(Sales))
 - While using AggF with GROUP BY, only non aggregated columns that are listed in the GROUP BY can be used in the SELECT
-- It is not mandatory to have AggF in SELECT if we use GROUP BY
-	1 . When you want to identify duplicates
-	2 . When you want distinct values in the result
+- It is not mandatory to have AggF in SELECT if we use GROUP BY    
+	1. When you want to identify duplicates
+	2. When you want distinct values in the result
 - Order of columns in GROUP BY will not have any affect on the number of rows in result
 - Other aggregate and non aggregate functionality columns listed in the SELECT has no affect on the number of rows returned
 - We can use HAVING without AggF as long as the columns used for filtering are part of GROUP BY
@@ -1278,9 +1406,9 @@ Can be nested
 	```
 	- CHARINDEX(character to be find, string, start position (optional,this position is included)  
 	Return the first appearance of a character in string, if cannot find, return 0, will count space. If the start position is <= 0, looks as 0 to find from all;
-	CHARINDEX('P',PerFName)  
-	Return the index location (start with 1) of  
 	```sql
+	CHARINDEX('P',PerFName)  
+	--Return the index location (start with 1) of  
 	-- Find the second apperance of a character
 	CHARINDEX('P', string, CHARINDEX('P', string)+1)
 	```
@@ -1296,15 +1424,28 @@ Can be nested
 ## Window functions
 OVER clause means using a window function
 - Types
-	- Ranking  
-	It is a type of WINDOW functions and it uses OVER clause to generate windows and provide a numbers for the data based the function used. They cannot be used in WHERE clause. They cannot be nested.
 	- Analytical (22 2012)
+		- LAG
+		Fetch values in the previous row(s) based on SORT operation
+		- LEAD  
+		Fetch values in the next row(s) based on SORT operation
+			- 3 parameters 
+			1. Scalar expression/column
+			2. Offset number of rows (optional and default 1)
+			3. Default in case of there is matching offset number for record (optional and default NULL)
+			```sql
+			SELECT OrderDate, TotalDue, LEAD(TotalDue) OVER(ORDER BY OrderDate)b
+			FROM Adventureworks. Sales. SalesOrderHeader
+
+		- FIRST_VALUE
+		- LAST_VALUE
 	- Aggregate
 	- PARTITION BY 
 	GROUP BY : Give pysical make groups, create groups
 	PARTITION BY: In logical in buffer, create windows, will include non-group by and non-aggregate columns
 
-- Ranking functions
+- Ranking functions  
+It is a type of WINDOW functions and it uses OVER clause to generate windows and provide a numbers for the data based the function used. They cannot be used in WHERE clause. They cannot be nested.
 	- ROW\_NUMBER()
 	Provides a sequence of numbers starting from 1, based on sort columns, there will not be any gaps in numbers generated by this as it doesn't consider duplicate values for numbering. Used commonly for deleting duplicates.
 		- Best way to use to delete duplicates
@@ -1429,6 +1570,8 @@ OVER clause means using a window function
 
 			
 		2. Table valued funtions - Returns a table
+			1. Inline
+			2. Muti Statement
 		```sql
 		/*
 		TVF - Table Valued Functions
@@ -1471,20 +1614,37 @@ OVER clause means using a window function
 	Cannot DDL, DML
 
 - options
-	WITH SCHEMABINGDING
-	WITH RETURNS NULL ON NULL INPUT
-	ENCRYPTION
+
+	- WITH SCHEMABINGDING
+	- WITH RETURNS NULL ON NULL INPUT
+	- ENCRYPTION
 
 - Performance
 	- schema binding (with out schema binding, server will create a temp object to save table and cost time. With schema bingding, server know the referenced table will not change and do not need to create copy)
 	
-# Parent child
+# Parent vs child
  - DELETE child first then DELETE parent
 
  - INSERT parent first then DELETE child
  - Change in both parent and child
  	1. DROP FK --> UPDATE parent --> UPDATE child --> RE-Create FK
 	2. CASCADE function
+		- ON DELETE CASCADE
+		- ON UPDATE CASCADE
+
+		- Properties
+			- on delete cascade cannot be defined if an INSTEAD OF trigger ON DELETE already exists on table that being altered.
+	```sql
+	ALTER TABLE child_table
+	ADD CONSTRAINT fk_name
+		FOREIGN KEY (child_col1, child_col2)
+		REFERENCES parent_table (parent_col1, parent_col2)
+		ON DELETE CASCADE ON UPDATE CASCADE; 
+		-- Can only have delete or update
+	-- SQL server will delete the corresponding records in the child table when the data in the parent table is deleted
+	```
+
+	<++>
 	3. (recommanded)Insert new value in parent --> change child to new value --> delete old value in parent
 
 	```sql
@@ -1682,17 +1842,16 @@ Ex. Back up all system database. Write dynamic SQL to search the names of databa
 	- Procedure mantienance
 	- **Dynamic pivoting**
 
-- Types
-	- System/Global
-		- @@ERROR ( 1. Log error; 2. Access error other than SQL management studio)  
-		Can only show the the previes error message
-		```sql
-		SELECT @@ERROR
-		SELECT * FROM sys.messages
-		WHERE message_id = 8134 (error id from @@ERROR)
-		```
-		- @@ROWCOUNT ( number of rows affected in last statement)
-		- @@IDENTITY
+- Disadvantage of Dynamic SQL?
+	- Hard to debugo
+	- Proformance loss: the execution plan for a dynamic query cannot be cached
+	- Security can be compromised with injection
+
+- How to solve SQL injection attacks?
+1. don't use dynamic sql
+2. do not declouse information
+3. do general updates, like firewalls.
+
 
 # Variables
 Variable: It is a temp structure that can hold a scalar value or a table. Scope of a variable is **execution batch or batch bound**
@@ -1870,7 +2029,7 @@ Temporary views
 	AS(
 	)
 	```
-	Recursive CTE (CTE can call itself)
+	- Recursive CTE (CTE can call itself)
 		- It has 2 parts: Anchor Member, Recursive Member
 		- UNION ALL is mandatory between Anchor and Recursive members
 		- Other SET Operators are possible with in Anchor or Recursive but not between Anchor and Recursive
@@ -1888,6 +2047,7 @@ Temporary views
 		WHERE StartPos<100
 		)
 		SELECT * FROM CTE_Num
+		OPTION(MAXRECURSION 0)
 
 		-- Find position of a specific character in a string taking into consideration of appearance (Ex. 2nd, 3rd etc)
 		DECLARE @S
@@ -1917,7 +2077,7 @@ Temporary views
 # Execution plan
 - Concepts
 	- Execution Plan    
-	it is a detailed set of instructions developed by query optimizer for **various steps involved in implementation of a query** and it deals with what **resources** are required for the operations and what **operators used (such as index scan or index seek)**
+	it is a **detailed set of instructions developed by query optimizer** for **various steps involved in implementation of a query** and it deals with what **resources** are required for the operations and what **operators used (such as index scan or index seek)**
 
 	- Query Optimizer   
 	analyzes multiple execution plans in a given time and provides best possible plan within that time.
@@ -1954,8 +2114,33 @@ Temporary views
 # Stored Procedures
 ## System Procedures
 - Type
-	a. **Using SQL Code** - Ex: SP_Help, SP_HelpText 
-	b. **Extended Procedures** - These are written in C, C++ some of these are legacy procedures. Usually with a prefix of XP_ Ex: XP_Cmdshell.  (new development should not use these type) 
+	1. **Using SQL Code** - Ex: SP\_Help, SP\_HelpText 
+	2. **Extended Procedures** - These are written in C, C++ some of these are legacy procedures. Usually with a prefix of XP\_ Ex: XP\_Cmdshell.  (new development should not use these type) 
+
+- Create a sys procedure
+```sql
+-- There are 3 requirement for such stored procedure
+-- The stored procedure must be created in the **master database**
+-- The name of the stored procedure must start with **“sp_“**
+-- The stored procedure must be **marked as a system object**.
+
+
+-- 1. Create the procedure in the master database
+USE master
+GO
+
+-- 2. Create the procedure with the prefix sp_
+CREATE PROCEDURE sp_[Stored_Procedure_Name]
+AS
+BEGIN
+     -- Insert the logic of your stored procedure here
+END
+GO
+
+-- 3. Mark the stored procedure as a system object
+EXEC sys.sp_MS_marksystemobject sp_[Stored_Procedure_Name]
+```
+
 ### Important
 Retrieves the info about an object  
 - EXEC SP\_HELP   
@@ -2005,7 +2190,7 @@ What are the different objects that depend on a given object
 ```sql
 EXEC SP\_DEPENDS '[dbo].[uspGetBillOfMaterials]'
 ```
-## Good to remember
+### Good to remember
 - EXEC SP\_WHO 'ACTIVE' --login' | session ID | 'ACTIVE'
 - EXEC SP\_ADDTYPE PhoneNo, 'varchar(13)', 'NOT NULL'
 - EXEC SP\_DROPTYPE 
@@ -2044,8 +2229,8 @@ Find all tables depend (child table) on this table. Find what tables will be imp
 ## User Defined Procedures
 Procedures can implement **business logic** 
 - Type
-	a. Using SQL Code - Uses TSQL to develop
-	b. **CLR - Common Language Runtime**, it uses C# code and libraries to achieve some functionality which is not possible with SQL.
+	1. Using SQL Code - Uses TSQL to develop
+	2. **CLR - Common Language Runtime**, it uses C# code and libraries to achieve some functionality which is not possible with SQL.
 
 - Properties
 	- Procedures store **execution plan** when the procedure is **first time executed** after its creation.	
@@ -2088,19 +2273,24 @@ Procedures can implement **business logic**
 
 	CREATE PROCEDURE spTestOutput(
 		@id SMALLINT,
-		@rownum INT OUTPUT
+		@out1 INT OUTPUT,
+		@out2 INT OUTPUT
 	) AS
 	SELECT 1
 	FROM sales
 	WHERE id = @id
-	SELECT @rownum = @@ROWCOUNT;
+	SELECT @out1 = @@ROWCOUNT, @out2 = @@TRANCOUNT
 	GO
 
-	DECLARE @count INT;
+	DECLARE @output1 INT, @output2 INT
 	EXEC spTestOutput
 		@id = 2018,
-		@rownum = @count OUTPUT;
-	PRINT @count
+		@out1 = @output1 OUTPUT,
+		@out2 = @output2 OUTPUT
+	PRINT @out1
+
+	DECALRE @out1 INT, @out2 INT
+	EXEC spTestOutput 2018, @out1 OUTPUT, @out2 OUTPUT
 	```
 
 - Why procedures are fast?
@@ -2109,11 +2299,20 @@ Procedures can implement **business logic**
 - Advantages of SP
 	1. Stores Execution Plan (Improves performance)
 	2. Security
+	```sql
+	CREATE PROC spAProc
+	WITH ENCRYPTION -- encrypt code
+	AS
+	BEGIN
+		-- Some logic
+	END
+	GO
+	```
 	3. Reusable
 	4. Accepts parameters (Input and Output)
 	5. NESTING (32 Levels)and RECURSION (32 Times)
 	6. Modularize (Big code into small chunks)
-	7. Reduce network traffic: SP is sent as a single unit of code even though it has multiple statement inside it. 
+	7. Reduce network traffic: SP is sent as a single unit of code even though it has multiple statement inside it. (If we send all statements to server, it will call lots of network problem; but if we call a procedure, it will have much less network traffic)
 
 - Disadvantages
 	1. **Outdated Execution Plan**: If data in the **underlying tables changes** and there are any **indexes added** then the execution plan would be outdated. Can be solved by **Recompile** the procedure to update it with new plan.
@@ -2126,9 +2325,14 @@ Procedures can implement **business logic**
 	4. **Frequent Recompiles** (or scheduled recompiles): This works good when the issue with parameter sniffing is not really bad Ex: if the results range in between few seconds to couple of minutes this process is good. With this option some users might wait for the results for couple of minutes and when the procedure is recompiled other set of users might wait for couple of minutes based on their usage of procedure. 	
 	5. WITH RECOMPILE hint?????
 
+- Cases for recompile
+	1. create or drop indexes
+	2. data update
+	3. parameter sniffing
+
 - Ways of Recompiling Procedure
 	1. Use **ALTER PROCEDURE command**: User should have access to ALTER an Object. 
-	2. Use **SP\_RECOMPILE** system procedure
+	2. Use **SP\_RECOMPILE** system procedure (in this way, store procudere will not recompile immediately. Instead, store procedure will recompile next time when it be executed.)
 	```sql
 	EXEC sp_recompile N'dbo.spTestrecompile';   
 	GO  
@@ -2147,6 +2351,7 @@ Procedures can implement **business logic**
 	GO  
   
 	```
+	5. Restart the SQL server. After restart, all store procedures will be recompile
 - [Difference between procedure and function]()
 <a id="diffprocfn"></a>
 ![Diff-proc-fn](Pictures/SQL/Diff_SP-FN_New.png) 
@@ -2301,192 +2506,6 @@ FROM Table
 	- Estimated I/O Cost
 	- Es
 
-# Exercise
-## LIKE
-```sql
-
-CREATE TABLE PERSON(
-PERID INT CONSTRAINT PK_PERSON_PerID PRIMARY KEY,
-PerName VARCHAR(25),
-SSN CHAR(9) CONSTRAINT CK_SSN CHECK ( SSN LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]')
--- Using CHAR because if use number, it chould be start with 0
-EMAIL VHARCHAR(50)
-
-ALTER TABLE PERSON
-ADD CONSTRAINT CK_PerName CHECK (PerName LIKE '_____%, ___%')
-ADD CONAT
-GO
-ALTER TABLE PERSON
-ADD CONSTRAINT CK_Email CHECK (EMAIL LIKE '_____%@___%.___%')
-
---check invalid email for user name and rest are fine
---unit test, check every thing as design
-INSERT INTO Person VALUES
-(2, 'Yue, li' ')
-
-```
-```sql
-SELECT PH.ProdHouse, 
-	CASE 
-		WHEN SUM(C.CollectionAmt)> SUM(M.Budget) THEN '2'
-		ELSE 0,
-		WHEN SUM(C.CollectionA
-(SUM(C.CollectionAmt)> SUM(M.Budget)) AS 'IsProfitable'
-FROM ProdHouse PH
-	LEFT JOIN MovieProd MP
-	ON PH.ProdHID = MP.ProdHID
-	JOIN Movie M
-	ON MP.MovieID = M.MovieID
-	JOIN Collections C
-	ON M.MovieID = C.MovieID
-WHERE ReleaseDate BETWEEN '2018-01-01' AND '2018-12-31'
-GROUP BY ProdHID, ProdHouse
-
-```
-
-## Others
-```sql
---Find Employees who are retiring on Weekend assuming age of retirement is 60
---Using DATENAME function
-SELECT BusinessEntityID, BirthDate, DATENAME(WEEKDAY, DATEADD(YY, 60, BirthDate)) 'Day of Retiring'
-FROM AdventureWorks2012.HumanResources.Employee
-WHERE DATENAME(WEEKDAY, DATEADD(YY, 60, BirthDate)) IN ('Saturday','Sunday')
---Using DATEPART function
-SELECT BusinessEntityID, BirthDate, DATENAME(WEEKDAY, DATEADD(YY, 60, BirthDate)) 'Day of Retiring'
-FROM AdventureWorks2012.HumanResources.Employee
-WHERE DATEPART(WEEKDAY, DATEADD(YY, 60, BirthDate)) IN (1, 7)
-
---People hired on Monday
-SELECT *
-FROM AdventureWorks2012.HumanResources.Employee
-WHERE DATENAME(WEEKDAY, HireDate) = 'Monday'
-
-SELECT COUNT(DISTINCT GenreCode)
-FROM Genre
-
-SELECT PH.ProdHouse
-FROM ProdHouse PH
-	JOIN MovieProd
-	JOIN Movie M
-
-ON 
-```	
-## Past evaluation test
-1.	Write code to create table for the Viewer in the model below. Use proper data types and constraints, some of the following business rules need to implement.  
-a.	Email should be unique, email should be either gmail or yahoo and only .com is allowed. Length of username should be minimum of 5 characters and there should be a (.) after @. Also it should allow (.) before @  
-b.	Gender should accept only M, F, N values  
-c.	Last name should be longer than 1 character  
-d.	DOB should be over 18 years  
-```sql
-CREATE TABLE Viewer(
-PersonID INT CONSTRAINT pk_viewer PRIMARY KEY,
-FirstName VARCHAR(100),
-MiddleName VARCHAR(100),
-LastName VARCHAR(100) CONSTRAINT lastname_check (LastName LIKE '_%'),
-DOB DATE CONSTRAINT dob_check ( DATEDIFF ( YY, DOB, GETDATE()) )
-Gender CHAR(1) CONSTRAINT gender_check CHECK (Gender IN ('M', 'F', 'N'),
-Email VARCHAR(100) CONSTRAINT uk_viewer UNIQUE,
-StartDate DATE,
-CONSTRAINT Email_gmail_check CHECK( Email LIKE "_____%@gmail.com"),
-CONSTRAINT Email_yahoo_check CHECK ( Email LIKE "_____%@yahoo.com"),
-
-```
-2.	Find Genres in which there are no movies  
-a.	Using JOINs
-```sql
-SELECT Distinct G.Genre
-FROM Genre G LEFT JOIN Moive M ON G.GenreCode = M.GenreCode
-WHERE M.MovieID IS NULL
-```
-b.	Using Sub Queries
-```sql
-SELECT Distinct G.Genre
-FROM Genre G
-WHERE G.GenreCode NOT IN ( SELECT DISTINCT M.GenreCode FROM Movie M)
-```
-3.	Find Maximum and Minimum rating for each movie. Output should have MovieName, Max Rating and Minimum Rating  
-a.	Using JOINs  
-```sql
-SELECT M.MovieName, MAX(Points) AS 'Max Rating', MIN(Points) AS 'Min Rating'
-FROM Revies R JOIN Movie M ON M.MovieID = R.MovieID
-GROUP BY M.MovieID, M.MovieName
-```
-
-b.	Using Sub Queries
-```sql
-SELECT (SELECT M.MovieName
-		FROM Movie M
-		WHERE M.MovieID = R.MovieID),
-		MAX(Points) AS 'Max Rating', MIN(Points) AS 'Min Rating'
-FROM Review R
-GROUP BY R.MovieID
-```
-4.	Find all reviews in which name of the hero is mentioned but not name of the heroine.
-```sql
-SELECT R.Review
-FROM Review R JOIN Movie M ON R.MovieID = M.MovieID
-WHERE R.Review LIKE CONCAT('%', M.Hero, '%') AND R.Review NOT LIKE CONCAT('%', M.Heroine, '%')
--- Can also use LIKE '%'+M.Hero+'%' or WHERE PATINDEX(M.Hero, R.review) != 0
-```
-
-5.	Find average rating given by Male and Female viewers. Output should have MovieName, MaleAvgRating, FemaleAvgRating
-```sql
-SELECT M.MovieName, AVG(Points) AS 'AvgRating'
-FROM Movie M, JOIN Review R ON M.MovieID = R.MovieID
-	JOIN Viewer ON R.PersonID = V.PersonID
-GROUP BY Gender
-
-SELECT (SELECT M.MovieName FROM Movie M WHERE R.MovieID = M.MovieID), AVG(Points) AS 'AvgRating'
-FROM Review R JOIN Viewer ON R.PersonID = V.PersonID
-GROUP BY Gender
-```
-
-6.	Find Name of Production House which made movie which generated highest total collections and lowest total collections. It should give 2 rows 1 for high value and another for low value.
-```sql
-
-SELECT ProdHouse
-FROM (
-	SELECT P.ProdHouse, 
-		DENSE\_RANK() OVER ( ORDER BY SUM( ISNULL(CollectionAmt, 0) DESC) AS "Rank\_High",
-		DENSE\_RANK() OVER ( ORDER BY SUM( ISNULL(CollectionAmt, 0) DESC) AS "Rank\_Low"
-	FROM ProdHouse P LEFT JOIN MovieProd MP ON P.ProdHID = MP.ProdHID
-		JOIN Movie M ON MP.ProdHID
-		JOIN Collections C ON M.MovieID = C.MovieID
-	GROUP BY P.ProdHouse
-	)
-WHERE Rank\_High = 1 OR Rank_Low = 1
-```
-
-7.	Rank (Dense Rank) all movies based on their second day collections.
-```sql
-SELECT M.MovieName, DENSE\_RANK() OVER ( ORDER BY ShowDate) AS 'Rank"
-FROM Movie M JOIN Collections C ON M.MovieID = C.MovieID AND DATEDIFF(DD,ReleaseDate, ShowDate) = 1
-```
-
-R8.	Find top 10 best years based on collections generated by all movies, you should consider inflation factor of 3% for each year.
-```sql
-SELECT TOP 10 YEAR(ShowDate) AS "Yr"
-	ROW\_NUMBER() OVER ( ORDER BY POWER(SUM(CollectionAmt), 1.03) ) AS "Rank"
-FROM Collections
-GROUP BY YEAR(ShowDate)
-
-```
-9.	Find all movies that generated revenue less than their budgets.
-```sql
-SELECT M.MovieName
-FROM Movie M JOIN Collections C ON M.MovieID = C.MovieID
-GROUP BY M.MovieID 
-HAVING SUM(CollecionAmt) = MAX(Budget)
-```
-
-10.	Show all movies and how many days that movie is screened. Output should have MovieName, NumDaysScreened.
-```sql
-SELECT M.MovieID, DATEDIFF(DD, M.ReleaseDate, MAX( C.ShowDate) ) AS "NumDayScreened"
-FROM Movie M JOIN Collections C ON M.MovieID = C.MovieID
-GROUP BY M.MovieID
-
-```
-
 
 
 
@@ -2499,16 +2518,24 @@ GROUP BY M.MovieID
 
 - Other things may used in the error handling
 	- @@ERROR
-	- RAISERROR
+	- RAISERROR  
+	Generates an error message and initiates error processing for the session. RAISERROR can reference a user-defined message stored in the sys.messages catalog view or build a massage dynamically
+	- THROW  
+	Raises an exception and transfers execution to a CATCH block of a TRY CATCH construct 
+- Difference between RAISERROR and THROW
+
+|RAISERROR|THROW|
+|---------|-----|
+|If a msg\_id passed to RAISERROR, the ID must be defined in sys.messages|The error\_number parameter does not bave to be defined in sys.massages|
+|The msg\_str parameter can contain printf formatting styles|The message parameter does not accept printf style formatting|
+|The severity parameter specifies the severity of the exception|There is no severity parameter. The exception severity is always set to 16|
 
 # Transactions
-Transactions is a set of SQL which can be executed following ACID properties
 Transactions is a set of SQL commands which work as a single unit. i.e if they are executed, either they have to completely successful or rollback (revert) to original state of DB. No partial commits.
 - ACID
-	- A Atomocity: transaction should be the smallest unit of execution i.e. A transaction has to be completely executed or rolled back to original state. Using SQL Transactions
+	- A Atomicity: transaction should be the smallest unit of execution i.e. A transaction has to be completely executed or rolled back to original state. Using SQL Transactions
 	Atomicity means the statements/statement (transaction) should be completed successfully or rollback to original state. Using BEGIN TRAN and COMMIT/ROLLBACK.
 	- Consistency  
-	Transaction should follow all business rules and logics as per requirments. Using triggers, constraints, procedures, functions
 	Consistency means DB has to be in consistent state before and after transaction. Making sure that all rules on the DB are validated for all transactions and should follow business rules. Using CHECK CONSTRAINTS, RULES, TRIGGERS, PROCEDURES, FUNCTIONS.
 	- Isolation  
 	Transactions will not interfere with each other. Using ISOLATION LEVELS
@@ -2551,11 +2578,14 @@ Transactions is a set of SQL commands which work as a single unit. i.e if they a
 	- Dirty read  
 	Dirty Data when a transaction reads data that is updated/inserted by other transaction but not committed/rolled back. READ UNCOMMITTED cannot handle this issue
 		- Solved by read uncommited data and or higher isolation level
-	- Non repeatable read
+	
+	- Lost update  
+	Trans 1 update row 1 and do not commited, and then trans 2 update same row 1 and try to committed but need to wait transc 1. Then trans 1 commited and trans 2 committed and overwrite the update of trans 1
+	- Non repeatable read  
 	Tran 1 have multiple reads, after read1, trans 2 delete/update data and commit, read2 and then commit. In trans1, two reads read different data (non-repeatable data_)  
 	Non Repeatable Read Data: If a transaction 1 is reading same data multiple times within the transaction and at the same time some other transaction (Transaction 2) modifies the data read by transaction 1. If Transaction1  displays different data for each read operation, it is called non repeatable read. READ COMMITTED, READ UNCOMMITTED cannot handle this issue.  
-	- Phantom read
-	Samilar with non repeatable read, only different is that non-repeatable trans update data, phantom read is insert. Non repeatable read cannot solve because the new data is not locked so it can be change (insert, update)  
+	- Phantom read  
+	Simiar with non repeatable read, only different is that non-repeatable trans update data, phantom read is insert. Non repeatable read cannot solve because the new data is not locked so it can be change (insert, update)  
 	Phantom Data: If a transaction (Tran 1) is reading same data multiple times within the transaction and at the same time some other transaction (Transaction 2) inserts data within the range of data read by transaction 1. If Transaction1  displays those rows inserted by transaction 2, it is called phantom read. READ COMMITTED, READ UNCOMMITTED, REPEATABLE READ cannot handle this issue.  
 
 ## Isolation
@@ -2567,7 +2597,7 @@ Transactions is a set of SQL commands which work as a single unit. i.e if they a
 	- Repeatable read  
 	Solve non-repeatable read problem (also included commited read)
 	Hold locks (or after a statement, will return lock and there is no lock during the gap
-	- Serialization
+	- Serialization  
 	Range lock, not only for the every exist data 
 	- Snapshort  
 	a shallow copy of the affected data and saved in tempDB, and thus will not block others. 
@@ -2768,24 +2798,72 @@ SELECT a.* FROM ( select a.* , @rn = @rn+1  from EMPLOYEE order by a.EmpSalary d
 
 
 
+
+
+# Triggers
+A trigger is a special type of stored procedure that automatically runs when an event occurs in the database server.
+- Types
+
+
+## DDL trigger
+Runs when DDL events
+- CREATE
+- ALTER
+- DROP
+	
+```sql
+-- on database scoped DDL trigger
+CREATE TRIGGER safety
+ON DATABASE
+FOR DROP_SYNONYM
+AS
+IF (@@ROWCOUNT = 0)
+RETURN;
+	RAISERROR('You must disable Trigger "safety" to remove synonyms
+	ROLLBACK
+GO
+DROP TRIGGER safety
+ON DATABASE;
+GO
+
+-- on server-scoped 
+CREATE TRIGGER ddl_trig_database
+ON ALL SERVER
+FOR CREATE_DATABASE
+AS
+	PRINT 'Database Created'
+	SELECT EVENDATA().VALUE ('(/EVENT_INSTANCE/TSQLCommand/CommandText)[1]', 'nvarchar(max)')
+GO
+DROP TRIGGER ddl_trig_database
+ON ALL SERVER;
+GO
+```
+
+		
+
+## DML trigger
+Run when DML event happens
+	- INSERT
+	- UPDATE
+	- DELETE
+## Logon trigger
+Runs in response to the LOGON event that raised when a user's session is being established
+
+- Options
+1. Instead of (DML (tables, veiws))
+
+	- Each operation, can have only 1 trigger (INSERT, DELETE, UPDATE)
+2. After/for (DML(tables), DDL(DB/Server), LOGON(Server))
+
+
+![Evaluation.png](Pictures/SQL/Evaluation.png) 
+ 
 # Assignment
 - PPT (intro, flow) 4-5 pages, professional
 - Logical Model
 - Script for tables, multi-runs
 - Procedures(5) for handling business REQ
 
-
-# Triggers
-
-- Types
-	1. Instead of (DML (tables, veiws))
-
-		- Each operation, can have only 1 trigger (INSERT, DELETE, UPDATE)
-	2. After/for (DML(tables), DDL(DB/Server), LOGON(Server))
-
-
-![Evaluation.png](Pictures/SQL/Evaluation.png) 
- 
 # Research Questions
 1. Can you add a column in between existing columns.
 	Default will add at the end
@@ -2809,3 +2887,270 @@ SELECT a.* FROM ( select a.* , @rn = @rn+1  from EMPLOYEE order by a.EmpSalary d
 
 
 5, 6, 17, 18, 19, 28, 39, 41, 42, 46
+
+
+
+
+
+
+# Exercise
+## LIKE
+```sql
+
+CREATE TABLE PERSON(
+PERID INT CONSTRAINT PK_PERSON_PerID PRIMARY KEY,
+PerName VARCHAR(25),
+SSN CHAR(9) CONSTRAINT CK_SSN CHECK ( SSN LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]')
+-- Using CHAR because if use number, it chould be start with 0
+EMAIL VHARCHAR(50)
+
+ALTER TABLE PERSON
+ADD CONSTRAINT CK_PerName CHECK (PerName LIKE '_____%, ___%')
+ADD CONAT
+GO
+ALTER TABLE PERSON
+ADD CONSTRAINT CK_Email CHECK (EMAIL LIKE '_____%@___%.___%')
+
+--check invalid email for user name and rest are fine
+--unit test, check every thing as design
+INSERT INTO Person VALUES
+(2, 'Yue, li' ')
+
+```
+```sql
+SELECT PH.ProdHouse, 
+	CASE 
+		WHEN SUM(C.CollectionAmt)> SUM(M.Budget) THEN '2'
+		ELSE 0,
+		WHEN SUM(C.CollectionA
+(SUM(C.CollectionAmt)> SUM(M.Budget)) AS 'IsProfitable'
+FROM ProdHouse PH
+	LEFT JOIN MovieProd MP
+	ON PH.ProdHID = MP.ProdHID
+	JOIN Movie M
+	ON MP.MovieID = M.MovieID
+	JOIN Collections C
+	ON M.MovieID = C.MovieID
+WHERE ReleaseDate BETWEEN '2018-01-01' AND '2018-12-31'
+GROUP BY ProdHID, ProdHouse
+
+```
+
+## Others
+```sql
+--Find Employees who are retiring on Weekend assuming age of retirement is 60
+--Using DATENAME function
+SELECT BusinessEntityID, BirthDate, DATENAME(WEEKDAY, DATEADD(YY, 60, BirthDate)) 'Day of Retiring'
+FROM AdventureWorks2012.HumanResources.Employee
+WHERE DATENAME(WEEKDAY, DATEADD(YY, 60, BirthDate)) IN ('Saturday','Sunday')
+--Using DATEPART function
+SELECT BusinessEntityID, BirthDate, DATENAME(WEEKDAY, DATEADD(YY, 60, BirthDate)) 'Day of Retiring'
+FROM AdventureWorks2012.HumanResources.Employee
+WHERE DATEPART(WEEKDAY, DATEADD(YY, 60, BirthDate)) IN (1, 7)
+
+--People hired on Monday
+SELECT *
+FROM AdventureWorks2012.HumanResources.Employee
+WHERE DATENAME(WEEKDAY, HireDate) = 'Monday'
+
+SELECT COUNT(DISTINCT GenreCode)
+FROM Genre
+
+SELECT PH.ProdHouse
+FROM ProdHouse PH
+	JOIN MovieProd
+	JOIN Movie M
+
+ON 
+```	
+## Past evaluation test
+1.	Write code to create table for the Viewer in the model below. Use proper data types and constraints, some of the following business rules need to implement.  
+a.	Email should be unique, email should be either gmail or yahoo and only .com is allowed. Length of username should be minimum of 5 characters and there should be a (.) after @. Also it should allow (.) before @  
+b.	Gender should accept only M, F, N values  
+c.	Last name should be longer than 1 character  
+d.	DOB should be over 18 years  
+```sql
+CREATE TABLE Viewer(
+PersonID INT CONSTRAINT pk_viewer PRIMARY KEY,
+FirstName VARCHAR(100),
+MiddleName VARCHAR(100),
+LastName VARCHAR(100) CONSTRAINT lastname_check (LastName LIKE '_%'),
+DOB DATE CONSTRAINT dob_check ( DATEDIFF ( YY, DOB, GETDATE()) )
+Gender CHAR(1) CONSTRAINT gender_check CHECK (Gender IN ('M', 'F', 'N'),
+Email VARCHAR(100) CONSTRAINT uk_viewer UNIQUE,
+StartDate DATE,
+CONSTRAINT Email_gmail_check CHECK( Email LIKE "_____%@gmail.com"),
+CONSTRAINT Email_yahoo_check CHECK ( Email LIKE "_____%@yahoo.com"),
+
+```
+2.	Find Genres in which there are no movies  
+a.	Using JOINs
+```sql
+SELECT Distinct G.Genre
+FROM Genre G LEFT JOIN Moive M ON G.GenreCode = M.GenreCode
+WHERE M.MovieID IS NULL
+```
+b.	Using Sub Queries
+```sql
+SELECT Distinct G.Genre
+FROM Genre G
+WHERE G.GenreCode NOT IN ( SELECT DISTINCT M.GenreCode FROM Movie M)
+```
+3.	Find Maximum and Minimum rating for each movie. Output should have MovieName, Max Rating and Minimum Rating  
+a.	Using JOINs  
+```sql
+SELECT M.MovieName, MAX(Points) AS 'Max Rating', MIN(Points) AS 'Min Rating'
+FROM Revies R JOIN Movie M ON M.MovieID = R.MovieID
+GROUP BY M.MovieID, M.MovieName
+```
+
+b.	Using Sub Queries
+```sql
+SELECT (SELECT M.MovieName
+		FROM Movie M
+		WHERE M.MovieID = R.MovieID),
+		MAX(Points) AS 'Max Rating', MIN(Points) AS 'Min Rating'
+FROM Review R
+GROUP BY R.MovieID
+```
+4.	Find all reviews in which name of the hero is mentioned but not name of the heroine.
+```sql
+SELECT R.Review
+FROM Review R JOIN Movie M ON R.MovieID = M.MovieID
+WHERE R.Review LIKE CONCAT('%', M.Hero, '%') AND R.Review NOT LIKE CONCAT('%', M.Heroine, '%')
+-- Can also use LIKE '%'+M.Hero+'%' or WHERE PATINDEX(M.Hero, R.review) != 0
+```
+
+5.	Find average rating given by Male and Female viewers. Output should have MovieName, MaleAvgRating, FemaleAvgRating
+```sql
+SELECT M.MovieName, AVG(Points) AS 'AvgRating'
+FROM Movie M, JOIN Review R ON M.MovieID = R.MovieID
+	JOIN Viewer ON R.PersonID = V.PersonID
+GROUP BY Gender
+
+SELECT (SELECT M.MovieName FROM Movie M WHERE R.MovieID = M.MovieID), AVG(Points) AS 'AvgRating'
+FROM Review R JOIN Viewer ON R.PersonID = V.PersonID
+GROUP BY Gender
+```
+
+6.	Find Name of Production House which made movie which generated highest total collections and lowest total collections. It should give 2 rows 1 for high value and another for low value.
+```sql
+
+SELECT ProdHouse
+FROM (
+	SELECT P.ProdHouse, 
+		DENSE\_RANK() OVER ( ORDER BY SUM( ISNULL(CollectionAmt, 0) DESC) AS "Rank\_High",
+		DENSE\_RANK() OVER ( ORDER BY SUM( ISNULL(CollectionAmt, 0) DESC) AS "Rank\_Low"
+	FROM ProdHouse P LEFT JOIN MovieProd MP ON P.ProdHID = MP.ProdHID
+		JOIN Movie M ON MP.ProdHID
+		JOIN Collections C ON M.MovieID = C.MovieID
+	GROUP BY P.ProdHouse
+	)
+WHERE Rank\_High = 1 OR Rank_Low = 1
+```
+
+7.	Rank (Dense Rank) all movies based on their second day collections.
+```sql
+SELECT M.MovieName, DENSE\_RANK() OVER ( ORDER BY ShowDate) AS 'Rank"
+FROM Movie M JOIN Collections C ON M.MovieID = C.MovieID AND DATEDIFF(DD,ReleaseDate, ShowDate) = 1
+```
+
+R8.	Find top 10 best years based on collections generated by all movies, you should consider inflation factor of 3% for each year.
+```sql
+SELECT TOP 10 YEAR(ShowDate) AS "Yr"
+	ROW\_NUMBER() OVER ( ORDER BY POWER(SUM(CollectionAmt), 1.03) ) AS "Rank"
+FROM Collections
+GROUP BY YEAR(ShowDate)
+
+```
+9.	Find all movies that generated revenue less than their budgets.
+```sql
+SELECT M.MovieName
+FROM Movie M JOIN Collections C ON M.MovieID = C.MovieID
+GROUP BY M.MovieID 
+HAVING SUM(CollecionAmt) = MAX(Budget)
+```
+
+10.	Show all movies and how many days that movie is screened. Output should have MovieName, NumDaysScreened.
+```sql
+SELECT M.MovieID, DATEDIFF(DD, M.ReleaseDate, MAX( C.ShowDate) ) AS "NumDayScreened"
+FROM Movie M JOIN Collections C ON M.MovieID = C.MovieID
+GROUP BY M.MovieID
+
+```
+
+
+CTE OVER VIEW:
+CTE agg faster
+create multiple cte with same name
+cte consume less resources
+do not need to drop CTE
+
+disadvantage
+cannot reuse
+
+temp table can have index, table variable cannot
+
+
+Cases use table variable, use temp table
+1. small data (100) in table variable
+2. cannot do DML, use temp table
+
+
+len() datalength()
+len() jgnore space after the string, datalenght() will incule the space after the string 
+
+
+
+
+if eles
+try catch
+@@Error last code
+throw
+raiserror
+
+
+1. can CTE use for optimization purpose?
+No
+2. when to use Table variables, temp table
+
+
+## Cursor
+
+we cannot create after trigger on view. BUt can create instead of trigger
+
+can run store procedure in a view
+
+scenerio for temp table and table variable
+
+how to optimize store procedures
+
+
+Optimize store procedure:
+1. "SET NOCOUNT OFF" do not calculate the number of rows affected by DML statements; reduce network traffic
+```sql
+SET NOCOUNT OFF;
+```
+
+2. Use two part names schema.table ???
+3. avoid using sp\_prefix in store procedure name, use usp\_procedurename instead; Because when use sp\_procedurename, server will check master database first. use usp can reduce search time in master database
+4. Avoid lengthy transaction; Long transaction block will decrease performance by blocking resource
+5. use select 1 to test whether exists
+```sql
+IF EXISTS(SELECT 1 FROM sys.objects)
+```
+5. Use columns names instead of use * ; avoid network traffic???
+7. Use NOLOCK statement in all cases or it should not be used for all cases```sql
+SELECT A, B FROM table WITH (NOLOCK)
+SELECT C, D FROM table WITH (NOLOCK)
+```
+
+
+
+disadvantage index view
+disdvantage of dynamic sql
+different ways to run dynamic sql
+scenario of temp table and table variable
+Scenario to use temp table
+1. When we need to create an index which cannot be created on table variable
+2. We need large amount of INSERT and DELETE; temp table support TRUNCATE which table variable not; use TRUNCATE is faster than DELETE
