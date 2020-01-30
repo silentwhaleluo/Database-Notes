@@ -32,27 +32,49 @@ Web, SharePoint List, ODate Feed, Hadoop File(HDFS), Active Directory, Microsoft
 	- Direct Query  
 	No data is imported or copied into Power BI Desktop. For relational sources, the selected tables and columns appear in the **Fields list**. Fore multi-dimensional sources like SAP Business Warehouse, the dimensions and measures of the selected cube appear in the Fields list. When create or interact with a visualization, Power BI Desktop queries the underlying data source, so always viewing current data
 		- Benefits
-		1. Build visualizations over **large dataset** which cannot import all the data with pre-aggregation
-		2. Underlying data changes can reuqire a refresh of data
-2. From Cube (Multi-Dimensional/Tabular)
-		3. Do not have 1 GB dataset limitation
-
+			1. Build visualizations over **large dataset** which cannot import all the data with pre-aggregation
+			2. Underlying data changes can reuqire a refresh of data
+			3. Do not have 1 GB dataset limitation
 		- Limitations of DirectQuery
-		1. All tables must come from a single database, unless use **composite models** 
-		2. If the query editor query is overly complex, an error occurs
-		3. Time intelligence capabilites are unavailable in DirectQuery
-		4. Limitations are places on DAX expressions allowed in measures to ensure to ensure that queries sent to the underlying data source have acceptable performance
-		5. **one-million-row** limit for **returning** data when using DirectQuery
+			1. All tables must come from a single database, unless use **[composite models](#compositemodels)** 
+			2. If the query editor query is overly complex, an error occurs
+			3. Time intelligence capabilites are unavailable in DirectQuery
+			4. Limitations are places on DAX expressions allowed in measures to ensure that queries sent to the underlying data source have acceptable performance
+			5. **one-million-row** limit for **returning** data when using DirectQuery
 		- Considerations
-		1. **Performance **. All DirectQuery are sent to the source database so the required visual refresh time depends on how long that back-end source takes to respond with the results from the query (recommended < 5s, if it will take a few minutes will receive an error
-		2. **load** on the source database; **row level security (RLS)** will have a significant impact
-		3. **security** all users can access data source using the credentials after publication to the power BI service
-		4. Some features are not supported in DirectQuery such as Quick Insights
+			1. **Performance**. All DirectQuery are sent to the source database so the required visual refresh time depends on how long that back-end source takes to respond with the results from the query (recommended < 5s, if it will take a few minutes will receive an error
+			2. **load** on the source database; **row level security (RLS)** will have a significant impact
+			3. **security** all users can access data source using the credentials after publication to the power BI service. All users see the same data, regardless of any security rules defined the backend source???
+			4. Some features are not supported in DirectQuery such as Quick Insights
+2. Analysis Services(Multi-Dimensional/Tabular) from Azure Analysis Services/ SSAS(with a gateway)
 	- Import
 	- Connect Live ???  
+	
+		- Limitations
+			- Cannot be use with any other source together
 	Cannot create new column, new measure or new quick measure
-	cannot manage relationship
+			- cannot manage relationship???
+			- Do not support row-level security
+			- Cannot create new column, new measure, nor new quick measure
+			- Report Pane is available in live connection
 
+<a name='compositemodels'></a>
+## Composite models (support automatically)
+- composite models: Allows a report to have multiple data connections, including DirectQuery connections or import, in any combinations. 
+- Many-to-many relationship:
+- storage mode
+
+- Benifits
+	- by "DirectQuery", composite model allow combines data from one or more DirectQuery sources, and combines from DirectQuery sources and import data
+
+- Limitations
+	- Incremental refresh is supported for composite models connecting to SQL, Oracle, and Teradata data sources only
+	- The following Live connect multi-dimensional sources can't be used with composite models
+		- SAP HANA
+		- SAP Business Warehouse
+		- SQL Server Analysis Services
+		- Power BI datasets
+		- Azure Analysis Services
 
 ## Comparison of Import, DirectQuery, Live connections
 |Category|Import data|DirectQuery|Live Connection|
@@ -69,7 +91,9 @@ Web, SharePoint List, ODate Feed, Hadoop File(HDFS), Active Directory, Microsoft
 1. Active (solid line)  
 Only 1 active relationship
 2. Inactive (dotted line)  
-Multiple inactive relationship between tables
+	- Multiple inactive relationship between tables
+	- Usually happens to role playing dimensions
+
 
 ### Cardinality
 1. 1:1
@@ -84,7 +108,34 @@ can filter from 1 side to other
 can filter from both sides
 
 ## DAX (data analysis expressions)
+DAX is a collection of functions, operators, and constants that can be used in a formula, or expression, to calculated and return one or more values. Create new informatin from data already in your model
+Calculations, more in measures and calculated columns
 Formula language for power pivot, power BI desktop, and Tabular modeling in SSAS
+	- Properties
+		- Can be nested up to 64 functions
+### Syntax
+```DAX
+ColumnName = Function()
+ColumnName = CALCULATE(expression to evaluated, filter)
+```
+
+#### Date and Time
+#### Time Intelligence
+(time intelligence need to mark table as date)
+- TotalYTD  
+TOTALYTD(<expression>, <dates>[,<filter>][,<year_end_date>]]
+evaluate the year-to-date value of the expression in the current context
+- TotalQTD  
+dates in the quarter to date
+#### Information
+#### Logical
+#### Mathematical
+#### Statistical
+#### Text
+#### Parent/Child
+#### Other
+
+
 ### Commonly used DAX functions
 - Data and Time functions
 - Filter functions
@@ -148,7 +199,7 @@ progress toward a measurable goal
 13. Scatter and bubble charts
 14. Matrix
 15. Tables
-16. Tree maps
+16. Tree maps  
 colored rectangles with size representing value (can be hierarcal)
 17. Waterfall charts  
 running total as values are added or subtracted
@@ -175,13 +226,6 @@ can import JSON file to customize data colors on visuals
 - perform data cleansing operation
 - transform data
 
-## Advanced DAX
-(time intelligence need to mark table as date)
-- TotalYTD  
-TOTALYTD(<expression>, <dates>[,<filter>][,<year_end_date>]]
-evaluate the year-to-date value of the expression in the current context
-- TotalQTD  
-dates in the quarter to date
 
 ## Bookmarks
 capture the currently configured view of a report page
@@ -200,57 +244,77 @@ capture the currently configured view of a report page
 - drill through filters
 
 ## Role Management (RLS)
-- Row level security (RLS) can be used to restrict data access for given user
-- configure for **imported** 
-- use for DirectQuery
-- on-premises model
+- Properties
+	- Row level security (RLS) can be used to restrict data access for given user
+	- configure for **imported** 
+	- use for DirectQuery
+	- on-premises model
 
 - Steps to create roles
-1. manage roles on Modeling
-2. create manage roles
-3. Write filter expression in DAX
-4. check for DAX syntax and click OK
-5. view reports as created role and test the DAX filters
+	1. "manage roles" on "Modeling"
+	2. "create" manage roles
+	3. Write "Table filter DAX expression"
+	4. check for DAX syntax and click "Save"
+	5. view reports as created role and test the DAX filters
 
 # Optimize data model
-
 1. Improve query performance in SSMS such as execution plan, use store procedure(sniffing), index
 1. remove unused tables and columns
 2. avoid distinct counts with high cardinality
 3. avoid unnecessary precision and high cardinality
 4. use integers instead of strings if possible
 5. DAX functions which need to test every row in a table
-6. when connecting data sources via DirectQuery, indexing columns that are commonly filtered or sliced again
+6. when connecting data sources via DirectQuery, indexing columns that are commonly filtered or sliced again???
 7. use filters to limit report visuals to diaplay only what is needed
 8. limit the number of visuals on page
 
 # Publishing report
+"Home" -\> "Publish"
 
 ## workspace
 workspace are some kind of destination folders which are chosen while publishing reports to powerBI services
+	- Dashboards
+	- Report
+	- Workbooks
+	- Dataset
 
 ### components
 - Dashboards  
 Choose visuals on report to pin on the dashboard
 - report
-- workbooks
+- workbooks  
+Workbooks are a special type of dataset. When use Get data with "Excel file", and chose "Connect" workbook will apprear in power BI as a Excel Online
 - dataset
 
 ### Sharing dashboards/reports
-- Content packs
+- Content packs  
+	- Package up dashboards, reports, Excel workbooks, and datasets and publish them to you team as an organizational content pack; include all PowerBI features includng interactive data exploration, new visuals, Q&A, integration with other data sources, data refresh and more; we can create multiple content packs per workspace  
+	- Steps: "Settngs" -\> "create content pack" -\> "Specific group, or entire organization" -\> "enter email address" -\> "Description" -\> "select dashboard, respective, report, and dataset"
+
 - Apps
+	- With Power BI apps, we can easily deploy a collection of purpose-built dashboards and reports to a large number of business users and empower them to make data-drivent decisions.
+	- There is a 1:1 relationship between Apps and workspace
 - Share in email
 - Embed codes
-- publish to web
+- publish to web  
+We can easily embed interactive Power BI visualizations online, such as in blog posts, websites, through emails or social media, on any device
+	
 - publish to sharepoint
+	- get the URL of report and "Embed in SharePoint Online", copy URL from dialog
 
 ### Subscriptions
+Options are daily or weekly
 
 
 ### Refresh
 Daily or weekly  
 DirectQuery every 15 min; options are daily or weekly; daily or weekly
 Live connect every 15 min; users is sent an email if the report refreshed, but no more than once per day
+
+| |DirectQuery|Live Connect|Scheduled refresh(Import)|Excel file in OneDrive/SharePoint Online|
+|--|-----------|------------|---------------------|------------------|
+|Report/dashbord| Every 15 mins|Power BI checks every 15 mins, if dataset changed, the report is refreshed|Daily can be up to 8 times a day/ Weekly|Once every hour|
+|Subscription over email|Daily/Weekly|No options; Users is sent an email if the report refreshed but no more than once per day|If the refresh schedule is daily, options is daily or weekly; if refresh schedule is weekly only option is weekly|When update, no more than once per day|
 
 ### Data alerts
 Can set on tiles pinned from reports visuals for and only for gauges, KPIs and cards
@@ -288,8 +352,18 @@ daily, weekly
 2. If no user interaction in a visualization, data is refreshed automatically approximately every hour. We can change that refresh frequency using the scheduled cache refresh option
 
 ## data classification
+The data on dashboard can be classified on the sensitivity of data
+"Dashboard" -\> "SETTINGS" -\> "Data classification" -\> "Admin Portal" -\> "Tenant settings" -\> "Data classification for dashboards and reports"
+	- High
+	- Medium
+	- Low sensitivity
 
 ### Parameters
 
 
 ### Methods to create tiles in dashboard ???
+	- in dashboard, use "Add tile"
+	- in report, pinning a "live tiles
+
+
+

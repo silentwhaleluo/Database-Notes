@@ -524,8 +524,51 @@ for spatial data types
 
 - How to identify Fragmentation:
 	1. GUI - Select the index properties and look for fragmentation section
-	2. Using DBCC SHOWCONTIG command
+	Database -> table -> tablename -> indexes -> index name -> index properties -> Fragmentation -> "Page Fullness"; "Total fragmentation"
+	2. Using DBCC SHOWCONTIG command (DBCC is Database Consistency Check)
+	```sql
+	-- display fragmentation information for a table
+	GO  
+	DBCC SHOWCONTIG ('HumanResources.Employee');  
+	GO
+
+	-- display with table id and index id
+	GO
+	DECLARE @id int, @indid int
+	SET @id = OBJECT_ID('Production.Product')
+	SELECT @indid = index_id
+	FROM sys.indexes
+	WHERE object_id = @id
+	   AND name = 'AK_Product_Name'
+	DBCC SHOWCONTIG (@id, @indid);
+	GO
+	```
+	
 	3. Using system management view: sys.dm\_db\_index\_physical\_stats DMV - Best option
+	sys.dm\_db\_index\_physical\_stats ([database id], [object id(table)], [index id], [partition number], [mode])
+
+	- options
+	- index\_depth
+	- index\_level
+	- avg\_fragmentation\_in\_percent (external fragmentation, the lower the number the better
+	- avg\_page\_space\_used\_in\_percent (internal fragmentation, the larger the number the better)
+	```sql
+	DECLARE @db_id SMALLINT;  
+	DECLARE @object_id INT;  
+	SET @db_id = DB_ID(N'AdventureWorks2017');  
+	SET @object_id = OBJECT_ID(N'AdventureWorks2017.dbo.DatabaseLog');  
+	IF @object_id IS NULL   
+	BEGIN;  
+		PRINT N'Invalid object';  
+	END;  
+	ELSE  
+	BEGIN;  
+		SELECT * FROM sys.dm_db_index_physical_stats(@db_id, @object_id, 0, NULL , 'DETAILED');  
+	END;  
+	GO
+	```
+
+	<++>
 	
 - Components
 	- Index\_level: The maxinum number is root, 0 is leaves, others are intermediate
@@ -1572,12 +1615,30 @@ It is a type of WINDOW functions and it uses OVER clause to generate windows and
 		2. Table valued funtions - Returns a table
 			1. Inline
 			2. Muti Statement
+			- Difference between Inline Table Valued Function and Muti-statement Table Valued Function  
+			
+|Inline Table Valued Function|Multi-statement Table Valued Function|
+|----------------------------|---------------------------------|
+|Database engine treats this type of function as a VIEW. So it calculates the execution plan for the same using the statistics on the tables used by the function. Thus have better performance|Database engine have to create a Table variable, insert the data and make it available for return. So it can not use the statistics of base table like it does in case of Inline functions|  
+|There is no extra load of creating a table variable|we have to create a table variable for this|
 		```sql
 		/*
 		TVF - Table Valued Functions
 		Inline and Multi Statement
 		"Create a Inline Table Valued UDF, which accepts 2 parameters. First parameter for a string with delimiters, second is for delimiter. And returns a table with list of values. Ex: Param1: Su;Pratibha;Benny;Anusha'Ke;Victor Param2: ;
 		Output should be like shown in Screenshot 10"
+
+		-- Other inline
+		CREATE FUNCTION CustInline(@CustomerID NCHAR(5))
+		RETURN (
+			SELECT c.CustomerID,
+					c.CompanyName,
+					o.OrderID
+			FROM [Products] P
+			INNER JOIN [Order Details] OD ON P.ProductID = OD.ProductID
+			WHERE C.CustomerID = @CustomerID
+			)
+		GO
 
 		*/
 		GO
@@ -1922,6 +1983,7 @@ It can hold multiple records
 	- Stored in TempDB
 	- Supports all CONSTRAINTS except FK
 	- DDL and DML is allowed (CREATE, ALTER, DROP, SELECT INTO, **create INDEX**)
+	- We can create index on Temp table
 
 	```sql
 	ALTER TABLE #Patient
@@ -2296,7 +2358,7 @@ Procedures can implement **business logic**
 - Why procedures are fast?
 	As they store execution plan, they need not to go through some of the **execution steps such as parsing, compiling, execution plan creation**.
 
-- Advantages of SP
+- Advantages of stored procedure
 	1. Stores Execution Plan (Improves performance)
 	2. Security
 	```sql
@@ -2512,9 +2574,11 @@ FROM Table
 # Error handling
 
 
-- TRY CATCH
+- TRY CATCH  
 	Can be nested
 	Cannot used TRY CATCH in function
+
+- IF ELSE
 
 - Other things may used in the error handling
 	- @@ERROR
@@ -2573,7 +2637,7 @@ Transactions is a set of SQL commands which work as a single unit. i.e if they a
 			3. Use **dead lock priority** for queries which you don't want to be killed. This is not a solution, it a way of not being a victim in dead lock scenario.
 			4. See if you can **change timings** of the queries or procs which conflict in Dead Lock scenarios.	
 
-## Read
+## Concurrency issue
 - Types of read
 	- Dirty read  
 	Dirty Data when a transaction reads data that is updated/inserted by other transaction but not committed/rolled back. READ UNCOMMITTED cannot handle this issue
@@ -2858,6 +2922,82 @@ Runs in response to the LOGON event that raised when a user's session is being e
 
 ![Evaluation.png](Pictures/SQL/Evaluation.png) 
  
+# Optimization of SQL Query
+
+- For developer
+1. Look into the execution plan and see if there are any operators which are bad for performance(EX: SORT, SPOOL, RID LOOKUP, KEY LOOKUP)
+2. avoid using * in the SELECT statement
+3. Use 2 part or 3 part naming convention
+4. Avoid using co-related sub queries and try using JOINs if related to SELF JOIN
+5. Try using WINDOW functions situations related to running totals, LAG and LEAD situations
+```sql
+SELECT Id, StudentName, StudentGender, StudentAge,
+SUM (StudentAge) OVER (ORDER BY Id) AS RunningAgeTotal
+FROM Students
+```
+
+
+6. SET NOCOUNT ON
+7. Try to filter the data as much as possible
+8. Try to do batch operations when dealing with DELETEs or UPDATEs
+```sql
+-- Batch Operations
+public static void executeBatchUpdate(Connection con) {  
+   try {  
+      Statement stmt = con.createStatement();  
+      stmt.addBatch("INSERT INTO TestTable (Col2, Col3) VALUES ('X', 100)");  
+      stmt.addBatch("INSERT INTO TestTable (Col2, Col3) VALUES ('Y', 200)");  
+      stmt.addBatch("INSERT INTO TestTable (Col2, Col3) VALUES ('Z', 300)");  
+      int[] updateCounts = stmt.executeBatch();  
+      stmt.close();  
+   }  
+   catch (Exception e) {  
+      e.printStackTrace();  
+   }  
+}
+```
+
+
+9. Avoid using WILD CARDS
+10. Use proper CONTROL FLOW
+11. Use proper logical operators when searching
+12. Use THROW over RAISERROR
+13. Avoid deeper NESTING in Sub Queries, Functions and SP
+14. Use UNION ALL instead of UNION if results don't differ
+15. Use JOINs instead of Sub Queries (in most of the cases)
+16. create procedures to make use of precompiled set of SQL code and execution plan caching
+18. Try to modularize a complex procedure with multiple simple procedures. In some cases this will solve Parameter Sniffing
+19. Avoid using CURSORs and WHILE loops as much as possible. Try replacing CTE if possible
+20. While using SCALAR UDFs use RETURN NULL ON NULL INPUT
+21. Avoid ORDER BY as much as possible
+22. Make use of INLINE UDFs over MULTI-LINE UDF
+23. Base on the size of data use TABLE VARIABLES over TEMP TABLES
+24. Avoid using SCALAR functions in WHERE condition
+25. Avoid TRIGGERS on tables where you have log of DML operations
+26. Avoid using LINKED SERVERS try using SSIS package
+27. Use WITH NOLOCK whenever it is possible
+28. Use HINTS as last resort
+29. Minimize the implicit conversion
+30. Monitor database using Query Store to understand queries ran against database
+- For admin
+1. Create indexes as needed on columns used for filtering (covering, filter index)
+2. Use INT data types as much as possible for CI
+	3. Create NCI on columns on which FOREIGN KEYS are defined
+	4. create partitions on large tables based on a column that is used in searching
+	5. Use profiler??? to find slow running queries or bottle necks for performance
+	6. Look into fragmentation of indexes and REBUILD or REORGANIZE as necessary
+	7. Create INDEX VIEWS to use multiple tables which are frequently searched
+	8. When data retrieval is large usually happening tables that doesn't have any DML go for Column Store Index
+	9. Use SQL Profiler and DTA to identify the need of new indexes, indexed views, partitions on the tables
+	10. Create a trace to find the statistics and update or create them as necessary
+
+1. Use TRUNCATE when possible
+2. Choose correct data types for the columns
+3. Use BULK operations if it fits the requriment
+4. Refresh or recompile SPs over the time
+
+
+
 # Assignment
 - PPT (intro, flow) 4-5 pages, professional
 - Logical Model

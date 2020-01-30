@@ -17,11 +17,36 @@ Design, implement and manage complex & high performance Data Integration (ETL) a
 - Extension of package is ".DTSX" data transformation services and XML
 - We can edit the raw XML for an object or to use a graphical designer with ralted menus, toolbars, and dialog boxes
 
+## Components
+
+- Executable
+	- Package
+	- container
+	- Task
+
+
+
+
+
+- Procedure
+	SQL commond set Paremeters input the variable of parameter to SSIS parameter
+
+- load fast default do not fire trigger, need to set advanced settings to component properties-- FastLoadOptions -- add 'FIRE\_TRIGGERS'
+
 # Package
 
 ## Common Properties
-- DelayValidation 
-When we have need to create and use temp table in task, and during the validaton the temp table do not exists and thus may give an error. In this case we can use "DelayValidatin" to delay the validation during running and thus avoid this problem
+- "DelayValidation"  
+Whether the validation of a component is delayed until run-time or not. E.g. When we have need to create and use temp table in task, and during the validaton the temp table do not exists and thus may give an error. In this case we can use "DelayValidatin" to delay the validation during running and thus avoid this problem
+
+- "ValidateExternalMetadata"  
+Validates a component during design til using extermal metadata. For example, if you read data from a excel file, which will output from the previous task and do not exist now. 
+
+- "MaxCouncurrentExecutable"  
+Defines that how many tasks can run simultaneously(in parallel). The default value is set to "-1" which means that it will be able to run Total tasks = Number of processor+2
+
+- "DefaultCodePage"  
+Specifies the column code page to use when code page information is not available from the data source. Default is 1252 for English
 
 ## Event Handlers
 - DisableEventHandles
@@ -396,6 +421,20 @@ Connect the executables, containers and tast into an ordered control flow
 
 
 # Data Flow Task
+data flow (subset of control flow)
+Only place in SSIS to implement business logic (change data)
+- Data flow task components
+	- Source
+	- Transformation
+	- Destination
+	- Data pipelines (arror --> )(data path)
+- Concepts
+	1. Provider
+	connect between source and SSIS system; Go to the source and read data to SSIS
+	2. Connection manager
+	The server and database is connnected
+	3. Source adapter
+	What kinds of column data is used
 ## Sources
 ### OLEDB source
 OLEDB (Object Linking and Embedding Database)
@@ -417,7 +456,8 @@ OLEDB (Object Linking and Embedding Database)
 
 	- SQL statement from variable
 
-### ADO.NET source
+### ADO.NET source (Active x data object)
+Provider to connect to many more sources
 - Support relational database and nonrelational database
 - Data access mode
 	- Table or view
@@ -427,16 +467,31 @@ OLEDB (Object Linking and Embedding Database)
 - Issues of excel file:
 	1. "32-bit drivers" in "64-bit Environment" excel driver is 32-bit driver. 
 	Solution: run package in 32 bit mode; project properties, set "Run64BitRuntime" to "False" and select "Use32bitRuntime"
-	2. Hidden data  
+	2. Data truncation error /  Incorrect Datatype  
+	Excel source uses the first 8 rows to set the datatype and length. If the first 8 row data is string and the length is below 255 Characters, the data type will be Unicode 255. If any row after 9, the length is exceeds 255 characters then package will fail and generates a truncation error ; as the same reason, if the the row after 9, the datatype is different, will have datatype error
+	Solution1: right click "Excel Source" -\> "Advance Editor" -\> "Input and Output Properties" -\> "Excel Source Error Outout" -\> "Data Type Properties" -\> "Length" to make it larger
+	Solution2:under "Regedit"(win+r) change "TypeGuessGows" 8 ->0 
+	3. Hidden data  
 	Solution: before running package ensure Hidden columns in excel sheet are accessible (not necessary to make it visible)
-	3. Incorrect Datatype  
-	Dataset depending on first 8 rows data type decided in excel  
-	Solution: under "Regedit"(win+r) change "TypeGuessGows" 8 ->0
 	4. Mixed data type  
 	mixed data type like numbers, dates, strings  
 	Solution: "IMEX=1" add property to connection manager; with this setting, the driver will read  "intermixed" data columns as text
 
-### ODBC source
+### Falt file source
+- Flat file
+	{CR}{LF}
+	Carriage return (Return \r)
+	Line feed  (new line \n)
+	If not define the data type, will always to 50 length
+	If do not have header, set header in (Advanced)
+
+	If the delimiter is in the data, and may be mix up. How to solve?
+		- Text qualifier ", "col1","col2"
+		- Use another delimiter (in column)
+		- Use fixed width
+
+### ODBC source (open Database Connectivity)
+- Old, cannot support many functions
 - load mode
 	- Row by row
 	- Batch
@@ -622,6 +677,7 @@ The Cache Transform transformation generates a reference dataset for the Lookup 
 - When the cache outdated and want to update, return and use "Refresh metadata"
 
 ### Rowset transformation
+The following transformations crate new rowset
 #### Aggregate
 - Operations
 	- Group by
@@ -643,12 +699,24 @@ Advanced editor -- Input and Output Propeties -- Aggregate output1 (many other n
 		
 - One input and one or more outputs
 
+##### Percentage Sampling Transformation
+Create a percentage of random selection of rows 
+	- Percentage of row
+	- Random seed
+
+##### Row Sampling Transformation  
+Create a sample data set by specifying the number of rows in the sample
+	- Number of rows
+	- Random seed
+
 #### Sort
 - Positive number means ascending and negative number means descending
 - Sorts and use multiple columns, column with lowest number sort first
 - One input and one output
 - remove duplicate rows
 - One input one output
+
+
 
 ### Business intelligence transformation
 #### Slowly Changing Dimension (SCD)
@@ -764,7 +832,7 @@ The Audit transformation enables the data flow in a package to include data abou
 - Thread
  	Multithreading is an activity of OS
 	Behind every activity, a thread is allocated by operating system which allows to perform parallaly
-	Settings: set EngineThread 
+	Settings: set "EngineThread"
 
 
 - Cache
@@ -919,54 +987,6 @@ Constrol flow (can exists alone)
 		UInt (unsigned int (do not have negative))
 
 
-data flow (subset of control flow)
-Only place in SSIS to implement business logic (change data)
-	- Source
-	- Transformation
-	- Destination
-	- Data pipelines (arror --> )(data path)
-Executable
-	- PKG
-	- container
-	- Task
-
-### Precedense constraint
-
-1. Provider
-connect between source and SSIS system; Go to the source and read data to SSIS
-2. Connection manager
-The server and database is connnected
-3. Source adapter
-What kinds of column data is used
-
-
-- OLEDB (object linking and Embedding) 
-- ODBC (open Database Connectivity)
-	- Old, cannot support many functions
-- ADO (Active x data object)
-- ADO.Net (2001)  
-Provider to connect to many more sources
-
-- Settings of OLEDB (object linking and Embedding) destination
-
-- Flat file
-	{CR}{LF}
-	Carriage return (Return \r)
-	Line feed  (new line \n)
-	If not define the data type, will always to 50 length
-	If do not have header, set header in (Advanced)
-
-	If the delimiter is in the data, and may be mix up. How to solve?
-		- Text qualifier ", "col1","col2"
-		- Use another delimiter (in column)
-		- Use fixed width
-
-
-- Procedure
-	SQL commond set Paremeters input the variable of parameter to SSIS parameter
-
-- load fast default do not fire trigger, need to set advanced settings to component properties-- FastLoadOptions -- add 'FIRE\_TRIGGERS'
-
 		
 
 
@@ -1040,6 +1060,13 @@ Provider to connect to many more sources
 		```
 	- Using .dtsx file
 	- Deploy packages using the Management Object Model APIS
+	- Deploy the packages with command line utlity to MSDB or file system
+	```sql
+	dtutil /File nameofpackage.dtsx /copy File; d:\abc\bcd\nameofpackage.dtsx --- PULL
+	dtutil /File nameofpackage.dtsx /copy SQL;foldername\packagename
+	```
+
+	
 
 # Configuration, Deployment and Security in Package Deployment Model
 ## Configuration
@@ -1102,7 +1129,7 @@ Provider to connect to many more sources
 ![Project vs package](Pictures/SSIS/DeploymentModel.png) 
 
 - Steps for package deployment
-1. project property, change "createDeploymentUnit" to true
+1. project property, change **"createDeploymentUnit"** to true
 2. Build project, and a '.dtsx' file will created; a '.dtsconfig" file will also created if with configuration
 3. Install
 4. Run 
@@ -1155,20 +1182,23 @@ Secure socket Layer (SSL)
 ## Project Security (before deployment)
 - In project level and package level, the security level must be same (the password also have to be same)
 
-- Security in SSISDB catalog on three level. Roles can be defined  on 3 level (right click open properties
+- Security in SSISDB catalog on three level. Roles can be defined  on 3 level (right click open properties)
 	1. Folder
 	2. Project 
 	3. Environment
 	- SSIS catalog (project) ???
 		- public role
 		- SSIS andministrators
+	- Roles
+		- ssis_admin
+		- ssis_cluster_executor
 - Project / package Encryption
 	- **"PackagePassword"** 
 	- **ProtectionLevel** 
 		- Do not save sensitive
 		- Encrypt sensitive with user key (login information of the user)
 		- Encrypt sensitive with passward
-		- Encrypt all with user key
+		- Encrypt all with user key (user login and password)
 		- Encrypt all with password
 	- Steps
 		1. **Package property** -\> "PackagePassword"
@@ -1423,6 +1453,7 @@ Capture
 cleanup ???
 	- stop capture job  ???
 	- use merge
+
 # Execute package
 
 - Execute package utility (file syste,)
@@ -1438,6 +1469,9 @@ dtexec /f "c:\pkgOne.dtsx" /conf "c:\pkgOneConfig.cfg"
 -- /F means file system
 -- /SQL MSDB database
 
+-- example
+dtexec.exe /F Nameofpackage.dtsx
+dtexec.exe /SQL foldername\packagename
 
 ```
 
@@ -1480,9 +1514,9 @@ What are some ways to optimize SSIS packages on the Data Flow level?
 
 7.	When you use the Fuzzy Lookup Transformation, use the ETI (Error Tolerance Index) and maintain if it is required, set Exhaustive Match to False, Warm Caches to True and set up MaxMemoryUsage as per the requirements.
 
-8.	You can increase the buffer size of the data pipelines (Default = 10MB). Max it can be 100MB and Min it can be 64KB.
+8.	You can increase the buffer size of the data pipelines (Default = 10MB). Max it can be 100MB and Min it can be 64KB. set "DefaultBufferSize"
 
-9.	You can also increase the size of the DefaultBufferMaxRows.
+9.	You can also increase the size of the "DefaultBufferMaxRows".
 
 10.	Use SQLServerDestination since it's specifically for the local server.
 
@@ -1544,44 +1578,43 @@ unnion do not need sort, merge should sort
 different conditional split and multicast?
 
 different betweenronous and Asynchronous
-	- Synchronous ( Non-Blocking transformation (row by row, not need put all records to buffer))
-			- Output data use the same buffer as input
-					- The output is synchronous with the input and Number of recourds IN == Number of records Output
-							- Does not need information about any other rows inside the data set
-									- Synchronous (non-blocking) transformations always offer the highest performance.
-											- Destination are synchronous
-												- Asynchronous (semi blocking and full blocking transformation)
-														- We can summarize Asynchronous Transformations as below
-																- Does not process rows independently in the dataset
-																		- Rather than output rows as they are processed, the transformation must output data asynchronously, or at a different time
-																				- Record counts usually change from input to output
-																						- Must create a new buffer upon the output of the transformation
-																								- Generally poorer performance than synchronous transformation
-																										- Typically a Semi-Blocking or Blocking Transformation
-																											You might decide that your design requires an asynchronous transformation when it is not possible to process each row independently of all other rows. In other words, you cannot pass each row along in the data flow as it is processed, but instead must output data asynchronously, or at a different time, than the input. For example, the following scenarios require an asynchronous transformation:
+- Synchronous ( Non-Blocking transformation (row by row, not need put all records to buffer))
+- Output data use the same buffer as input
+- The output is synchronous with the input and Number of recourds IN == Number of records Output
+- Does not need information about any other rows inside the data set
+- Synchronous (non-blocking) transformations always offer the highest performance.
+- Destination are synchronous
+- Asynchronous (semi blocking and full blocking transformation)
+w
+- Does not process rows independently in the dataset
+- Rather than output rows as they are processed, the transformation must output data asynchronously, or at a different time
+- Record counts usually change from input to output
+- Must create a new buffer upon the output of the transformation
+- Generally poorer performance than synchronous transformation
+- Typically a Semi-Blocking or Blocking Transformation
+You might decide that your design requires an asynchronous transformation when it is not possible to process each row independently of all other rows. In other words, you cannot pass each row along in the data flow as it is processed, but instead must output data asynchronously, or at a different time, than the input. For example, the following scenarios require an asynchronous transformation:
 
-																											The component has to acquire multiple buffers of data before it can perform its processing. An example is the Sort transformation, where the component has to process the complete set of rows in a single operation.
+The component has to acquire multiple buffers of data before it can perform its processing. An example is the Sort transformation, where the component has to process the complete set of rows in a single operation.
 
-																											The component has to combine rows from multiple inputs. An example is the Merge transformation, where the component has to examine multiple rows from each input and then merge them in sorted order.
-																													- Output of an asynchronous component uses new buffers (Data from different and more than one data sources)
-																															- Number of output may different from number of input
-																																	- Semi-Blocking Asynchronous Transformations require a subset of the data to be collected before they can be sent to the destination(s). The shape of the data can change. A subtotal or sampling of data may be extracted from the source(s).
-																																			- Fully Blocking Asynchronous Transformations are the slowest transformations. They require all the data to be pulled from the source(s) before they can be sent to the destination(s). All source data must be loaded into memory first ! As much as we should try to avoid these, they can sometimes still be required, such as sorting data pulled from a flat-file source.
-																																						- If there is more data than the memory available, it will use the %TEMP% directory to cache some of the data. If you want to use a different location, you can set the BufferTempStoragePath property of the Data Flow Task to point to a different folder location. (Full blocking)
-																																								- All the source adaptors are asynchronous, as they create one output and one error output buffer
+The component has to combine rows from multiple inputs. An example is the Merge transformation, where the component has to examine multiple rows from each input and then merge them in sorted order.
+- Output of an asynchronous component uses new buffers (Data from different and more than one data sources)
+- Number of output may different from number of input
+- Semi-Blocking Asynchronous Transformations require a subset of the data to be collected before they can be sent to the destination(s). The shape of the data can change. A subtotal or sampling of data may be extracted from the source(s).
+- Fully Blocking Asynchronous Transformations are the slowest transformations. They require all the data to be pulled from the source(s) before they can be sent to the destination(s). All source data must be loaded into memory first ! As much as we should try to avoid these, they can sometimes still be required, such as sorting data pulled from a flat-file source.
+- If there is more data than the memory available, it will use the %TEMP% directory to cache some of the data. If you want to use a different location, you can set the BufferTempStoragePath property of the Data Flow Task to point to a different folder location. (Full blocking)
+- All the source adaptors are asynchronous, as they create one output and one error output buffer
 
-																																								- Thread
-																																								 	Multithreading is an activity of OS
-																																										Behind every activity, a thread is allocated by operating system which allows to perform parallaly
-																																											Settings: set EngineThread 
+- Thread
+Multithreading is an activity of OS
+Behind every activity, a thread is allocated by operating system which allows to perform parallaly
+Settings: set EngineThread 
 
 
-																																											- Cache
-																																											The full cache mode setting is the default cache mode selection in the SSIS lookup transformation. Like the name implies, full cache mode will cause the lookup transformation to retrieve and store in SSIS cache the entire set of data from the specified lookup location. As a result, the data flow in which the lookup transformation resides will not start processing any data buffers until all of the rows from the lookup query have been cached in SSIS.
+- Cache
+The full cache mode setting is the default cache mode selection in the SSIS lookup transformation. Like the name implies, full cache mode will cause the lookup transformation to retrieve and store in SSIS cache the entire set of data from the specified lookup location. As a result, the data flow in which the lookup transformation resides will not start processing any data buffers until all of the rows from the lookup query have been cached in SSIS.
 
-																																											The most commonly used cache mode is the full cache setting, and for good reason. The full cache setting has the most practical applications, and should be considered the go-to cache setting when dealing with an untested set of data. With a moderately sized set of reference data, a lookup transformation using full cache mode usually performs well. Full cache mode does not require multiple round trips to the database, since the entire reference result set is cached prior to data flow execution.
+The most commonly used cache mode is the full cache setting, and for good reason. The full cache setting has the most practical applications, and should be considered the go-to cache setting when dealing with an untested set of data. With a moderately sized set of reference data, a lookup transformation using full cache mode usually performs well. Full cache mode does not require multiple round trips to the database, since the entire reference result set is cached prior to data flow execution.
 
-																																											fuzzy look up fuzzy grouping?
 new columns names???
 
 Can use other file as reference in Lookup???
@@ -1623,3 +1656,16 @@ configuration, deployment, security, checkpointk, error handling
 Questions:
 What is semi bloking???
 why must sort???
+o
+
+
+raw file source
+semi-processed data
+
+script task
+row count transformation, outside in control flow script task display.
+
+Application need to use ADO.NET
+SQL server destination fasters
+
+buffersize: default 10MB, 64kb min, 100MB
