@@ -78,6 +78,7 @@ The maximun number of errors that can occur before a container stops running. De
 		- NotSupported
 		- Supported
 		- Required
+	- "MSDTC" - "Distributed Transaction coordinator" in "Services" of MS windows, "start"
 
 - Can be nested
 
@@ -463,6 +464,8 @@ Provider to connect to many more sources
 	- Table or view
 	- SQL command
 - Performance is worse than OLEDB source
+- "UseBulkInsertWhenPossible" to TRUE
+- Log calls by set "Diagnostic event"
 ### Excel source
 - Issues of excel file:
 	1. "32-bit drivers" in "64-bit Environment" excel driver is 32-bit driver. 
@@ -621,7 +624,8 @@ The Raw File source reads raw data from a file. Because the representation of th
 - config
 	- type of join: FULL, LEFT, INNER
 	- Columns used to join
-	- whether handles null values as eqaul to other nulls
+	- "TreatNullsAsEqual": whether handles null values as eqaul to other nulls
+	- **Case sensitive** 
 	<a name= 'sortdata'></a>
 	- Two methods to sort 
 		1. Sort tranformation
@@ -631,7 +635,7 @@ The Raw File source reads raw data from a file. Because the representation of th
 			3. Sortkeyposition(Advance, input and output properties, output columns, choose column) do define order, posive for ascending, negtive for descending. If if sort on one column, EX -1, if two columns firts ascending, second descending, +1, -1
 
 #### \*Lookup
-Compare input and reference
+Compare input and reference (in some case, lookup transformation is can be work as **Equi\-Join**, can be **inner join equal join**, if join the match and no match together, seems like **LEFT Equal Join (input is left) but not able to do FULL JOIN** and **NULL equal to NULL**; If the input columns matches more than one row in the lookup object, it will pick the **First row** 
 
 - Usage
 	- Validate data between OLTP and OLAP for checking whether data is rpesent or not (whether all data load to OLAP system succuessfully)
@@ -995,12 +999,36 @@ Constrol flow (can exists alone)
 
 
 
+# Execution of packages
+1. SSDT
+2. SSIS Catelog
+	- directly execute on GUI
+	- Build-in store procedure
+3. SQL server job agent
+4. dtexec  
+The dtexec command prompt utility is used to configure and execute SQL Server Integration Services packages. 
+```command
+-- Command prompt
+DTExec /ISSERVER "\SSISDB\folderB\Integration Services Project17\Package.dtsx" /SERVER "." /Envreference 2 /Par "$Project::ProjectParameter(Int32)";1 /Par "Parameter(Int32)";21 /Par "CM.sqlcldb2.SSIS_repro.InitialCatalog";ssisdb /Par "$ServerOption::SYNCHRONIZED(Boolean)";True
+```
+```bash
+-- Bash
+dtexec /F MyPackage.dtsx /CONN "MyConnection"\;"\"MyConnectionString\""
+```
 
+5. dtexecui
+"Execute Package Utility",The utility runs packages that are stored in one of three locations: Microsoft SQL Server database, the SSIS Package Store, and the file system. 
+6. Managed API
 
 
 
 		
+
 # Deployment
+- Version
+	- Before 2012, only package deployment model
+	- Since 2012, can use project deployment model or package deployment model
+	- Since 2016,**Incremental package** deployment feature introduced in SQL Server **2016** SSIS. 
 ## Project Doployment Model
 
 - Features of Project deployment Model
@@ -1032,39 +1060,45 @@ Constrol flow (can exists alone)
 
 	
 
-## Package Deployment Model
-**Incremental package** deployment feature introduced in SQL Server **2016** SSIS. 
+## Package Deployment Model (Legacy Package Deployment)
+- Limitations
+	- Do not support parameters( cannot use project parameter leads to lots of same configuration for each packages
+	- Do not support "Internal reference" in "Execute Package Task" which is good for modularized
+	- Config file is not included when deploy to the SSIS catalog
+	- Cannot use project connection
+
+
 - Deploy one or more pakcages to an existing or new project without deploying the whole project
 
-- Methods of packages deployment
-	- use "isdeploymentwizard.ext" 
-		1. run "isdeploymentwizard.ext" from %ProgramFiles%\Microsoft SQL Server\130\DTS\Binn. On 64-bit computers, there is also a 32-bit version of the tool in %ProgramFiles(x86)%\Microsoft SQL Server\130\DTS\Binn
-		2. on the select source page, switch to package deployment model. Then, select the folder that contains source packages and configure the packages.
-		3. Complete the wizard
+### Methods of packages deployment
+- Use deployment utility
+	1. In "Project" -\> "Project properties" -\> "Deployment" -\> "CreateDeploymentUtility"
+	2. A "deployment Manifest" file will be created
+	3. open this file and complete the wizard
 
-	- Using SQL Server Management Studio
-		1. in SQL Server Management Studio, expand the SSIS catalog -\> SSISDB node 
-		2. Right-click Projects folder, then click Deploy Projects
-		3. On select source page, switch to Package deployment model. Then select folder that contains source packages and configure the packages
-		4. Complete the wizard
+- In Visual studio, right click "project" and select "Deploy" to launch "SQL Server 2017 Deployment Wizard" ("ISDeploymentWizard.exe")
+	1. Open "SQL Server 2017 Deployment Wizard" from \Microsoft SQL Server 2017\Integration Services\SQL Server 2017 Deployment Wizard
+	2. "select source" -\>"Package Deployment" -\> path for folder of packages
+	3. select destination
 
-	- Using SQL Server Data Tools (Visual Studio)
-		1. In VS, with project open, select pakcage
-		2. Right-click and select deploy package. The deployment wizard opens with the select packages configured as source packages
-		3. Complete the wizard
+- run "ISDeploymentWizard.exe" to open the same wizard as before
 
-	- Using deploy\_packages stored procedure  
-		1. use [catalog].[deploy_packges]
-		```sql
-		[catalog].[deploy_packages]     [ @folder_name = ] folder_name,    [ @project_name = ] project_name,    [ @packages_table = ] packages_table,     [ @operation_id OUTPUT ] operation_id OUTPUT ]`  
-		```
-	- Using .dtsx file
-	- Deploy packages using the Management Object Model APIS
-	- Deploy the packages with command line utlity to MSDB or file system
+- using SQL Server Management Studio SSIS catalog right click "Projects" -\> "Deploy Project..." to open same wizard
+
+
+- Using deploy\_packages stored procedure  
+	1. use [catalog].[deploy\_packges]
 	```sql
-	dtutil /File nameofpackage.dtsx /copy File; d:\abc\bcd\nameofpackage.dtsx --- PULL
-	dtutil /File nameofpackage.dtsx /copy SQL;foldername\packagename
+	[catalog].[deploy_packages]     [ @folder_name = ] folder_name,    [ @project_name = ] project_name,    [ @packages_table = ] packages_table,     [ @operation_id OUTPUT ] operation_id OUTPUT ]`  
 	```
+
+- Using .dtsx file
+- Deploy packages using the Management Object Model APIS
+- Deploy the packages with command line utlity to MSDB or file system
+```sql
+dtutil /File nameofpackage.dtsx /copy File; d:\abc\bcd\nameofpackage.dtsx --- PULL
+dtutil /File nameofpackage.dtsx /copy SQL;foldername\packagename
+```
 
 	
 
@@ -1117,6 +1151,50 @@ Constrol flow (can exists alone)
 	- deploy packages to different servers
 	- Make pacages more flexible
 	
+## Parameter - Configuration for project model
+
+- Parameter are stored in the project file
+
+- View in SSISDB
+	- catalog.execution\_parameter\_values
+
+- Parameter validation
+### Types of parameters
+- Create package parameters
+	- in SSDT, click parameters
+	- click add new
+	- enter values
+		- Values
+			- name
+			- Data type
+			- Default value
+			- Sensitive
+			- Required
+			- Description
+- Create project parameters
+	- open SSDT
+	- right-click "Project.params"
+	- in parameter, click "add parameter"
+
+- Parameterize Dialog Box
+	- right click tasks, containers,**connection managers** in control flow, click "Parameterize"
+	- Options
+		- Property
+		- Use existing parameter
+		- Do not use parameter
+		- create new parameter
+		- Name
+		- Description
+		- Value
+		- Scope
+		- Sensitive
+		- Required (when use required, a values mast be specified. Otherwise, the corresponding package does not execute, even though parameter has a default value)
+- Set parameter values after the project is deployed
+	- In SSMS
+	- right click "Integration Service"
+	- "Properties" to open "Project properties"
+	- open "Parameters" under "select a page"
+	- change a value
 
 ## Deoplyment
 - Version
@@ -1322,17 +1400,17 @@ SELECT CHECKSUM(NULL, '111') -- give an error
 	- Some data types are not supported
 
 ### Timestamp
-- Timestamp
+- Timestamp (now should be ROWVERSION)
 Timestamp is a data type that exposes automatically generated, unique binary numbers within a database
 	- size 8 bytes
 	- Does not preserve a data or a time
 	- When a row with timestamp modified or inserted a column, the incremented value is inserted in the timestamp column
 
 - Steps of inplementing
-	1. Add a column with timestamp in source table
-	2. Create tracking table to store latest timestamp for inital or incremental load
-	3. Add a column with "Varbinary" data type in destination table to set expiry of a deleted rocrds
-	4. Create a stored procedure to perform inital or incremental load
+	1. Add a column with **ROWVERSION** datatype in source table
+	2. Create tracking table and use **VARBINARY(8)** to store latest timestamp for inital or incremental load
+	3. Add a column with "Varbinary(8)" data type in destination table to set expiry of a deleted rocrds
+	4. Create a stored procedure with merge statement to perform inital or incremental load
 
 - Pros
 	- Good performance
@@ -1476,31 +1554,28 @@ dtexec.exe /SQL foldername\packagename
 ```
 
 # Optimization
-What are some ways to optimize SSIS packages on the Control Flow level?
+## Optimization in Control Flow level
+1. Set parralel execution
+	1. avoid unnecessary precedence 
+	2. set "Package property" **"MaxConcurrentExecutables"** to some value. Default is "-1" means max limit
+	3. Set parrallel of child package by set "Executa package task" property **ExecuteOutOfProcess"** to "TRUE" which will allocate a new ram to execute child package parralel
+2. Use **transaction if lowest level**
+3. For **Error handling** 
+	1. Use **Event Handler** instead of **failure precedence** (when use event handler, the event handler executable won't be validate and compiled before it is triggered
+	2. Set the "Propagate" system variable to "False" to avoid **error escaliatoin** 
+4. Use **Event Handler** to customize necessary **logging**
+5. Set **checkpoint** to restart the package from failure to avoid reapting heavy load tasks
+6. Use proper task
+	1. Use "Execute T-SQL Task" of hard coding query (no parameterized query, no load result set to variable, no expression properties)
+	2. Avoid redundant event handlers
 
-1.	Use parallel execution by changing precedence constraints. If there are two executables that can be executed independently, don't connect them using a precedence constraints. In order to make more executable get executed parallel, increase the value of the property of the package named '**MaxConcurrentExecutables**'. The default value of MaxConcurrentExecutables = -1 (i.e. max limit)
+## Optimization in Data FLow level
 
-2.	Use the Event Handler instead of failure precedence constraints (the red arrows). It is because all the executable, even the ones red arrows point to, in the package will be validated and compiled and the executable in the Event Handler won't be unless the event is triggered. So try to use as much as event handlers.
-
-3.	Avoid 'Bulk Insert Task'. Use 'Data Flow Task' with fast load access mode instead because Bulk Insert Task doesn't have data pipelines.
-
-4.	Use master-child packages using '**Execute Package Tasks**'. You can also change the property of **ExecuteOutOfProcess**, to true so that the master and child packages will be a separate process and gets separate RAM space for the faster performance.
-
-5.	Use '**Execute SQL Task**' instead of doing everything on the SSIS level.
-
-6.	Use Execute T SQL Task where ever it makes sense
-
-7.	If you have the **logging configured**, log only things that are necessary instead of everything.
-
-8.	Avoid unnecessary redundant event handlers.
-
-9.	Set the Propagate variable value to false at event handler for control flow executable raising error to avoid error escalation since the event gets escalated from child executable to the parent executable.
-10.	If it is possible use Execute T SQL Task
-
-11.	Lastly, optimize each component of the Control Flow.
-
+1. Set parallel execution by set "Data FLow Task" Properties "EngineThreads", default is 10 ???todo???
 
 What are some ways to optimize SSIS packages on the Data Flow level?
+0. parallel execution in data flow level "Enginthreads", by default is 10 ???
+0. SQL command is the fastest ???
 
 1.	Optimize the sources. Use SQL command for the OLE DB Source and use JOINs and ORDER BY here instead of doing them using the SSIS transformations. Use procedures if possible. Don't select unnecessary columns because SSIS validates external meta data.
 
@@ -1669,3 +1744,59 @@ Application need to use ADO.NET
 SQL server destination fasters
 
 buffersize: default 10MB, 64kb min, 100MB
+
+
+#. For large dataset
+1. bcp
+2. advanced source edition "Fast Parse" skip the validation 
+3. maximun memory, engine threads, deaultbuffermaxrows, maximun 307200
+4. Copy database
+
+
+# Problems in the pacakges
+1. OLTP is dynamic
+2. Requriemnt keep changing
+3. People changes role, permession
+4. data loa
+
+# Optimization of SSIS
+- Network
+	- connection manager  (if not local, remote server)
+	"Packet Size": the size of network packets based on the quality of your network. Defult 0 means 4KB will be transferred at a time. We can change it to 32767 which means 32 KB of data transfer to be transffered at one time
+- Package level
+	- Set checkpoint to avoid repead heavy load work
+
+- Memory
+	- "DefaultBufferMaxSize" default 10MB. Decided by "MaxBufferSize"(100MB) and "MixBufferSize"(64kb);
+	- "DefaultBufferMaxRows": default 10,000, maximun 307,200
+	- "BLOBTempStoragePath"
+	- "BufferTempStoragePath"
+
+- Run in parallel
+	- "MaxConcurrentExecutables" default -1
+	- "EngineThreads" : Default is 10
+	- "ExecuteOutOfProcess" set to "True" for "Execute Package Task"
+
+	
+- Logic
+	- Disable indexes before loading large data. And then rebuild indexes after load
+	- Only logging necessary informations
+
+- Control flow
+	- Use Bulk Insert Task if possible (from file directly to SQL Server database table
+	
+- Dateflow
+	- Source
+		- In source table, use "SQL command" to choose needed column instead of use "table or view", and use where condition to filter useless data
+		- Other SQL query optimazation points:
+		- Sort source if needed and possible. Set "IsSort" and "SortKeyPosition"
+			- use "WITH NOLOCK" SQL hint
+	- Transformation
+		- Use SQL query instead of transformations if possible (data conversion, Lookup, JOIN)
+		- For "Look up", use full cache if possible. Use "Cache transformation" to create cache file for reference table
+		- Avoid asychronous transformations (Sort, Aggregation, fuzzy lookup, fuzzy grouping)
+	
+
+	- Destination
+		- Use SQL Server Destination if possible (1. load data in local Server, SSIS package and SQL server in same machine 2. Do not need to use variable in table name)
+		- Second use OLEDB with Fastload (use bulk insert). "MaxInsertCommitSize" if 0 means only one commit. 0 have best performance but need large memorry. Maximun number is 2,147,483,647

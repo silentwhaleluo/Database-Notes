@@ -422,7 +422,25 @@ CONTAINS and FREETEXT are 2 keys words that can be used to filter data from the 
 
 - 2 types of Search syntax
 	- **CONTAINS** (exec or fuzzy search): It can be used for exact searches, or fuzzy search (using \*). Also matches to phrases (use " at the beging and end), words within a certain distance (use **NEAR** key word)of one another, or weighted matches (use **WEIGHT** key word). It can be used to search for words with tenses based search word (use **INFLECTIONAL** key word). Ex: Go can retrieve GOING, GONE etc. 
+	```sql
+	Use AdventureWorks2012;  
+	GO  
+	SELECT Name, Color   
+	FROM Production.Product  
+	WHERE CONTAINS((Name, Color), 'Red');
+	```
+
+	
 	- **FREETEXT** (synonyms): It is used for predicate searches for values that match the meaning and not just the exact wording of the words in the search condition. 
+	```sql
+	USE AdventureWorks2012;
+	GO
+	SELECT Title
+	FROM Production.Document
+	WHERE FREETEXT (Document, 'vital safety components' );
+	GO
+	```
+	
 
 ### Indexed view
 - Properties
@@ -444,10 +462,11 @@ CONTAINS and FREETEXT are 2 keys words that can be used to filter data from the 
 - Disadvantages
 	- Indexes take additional disk space
 	- indexes slow down DML
-### Column Store Index
-Column Store Index is type of index introduced in 2012. Unlike traditional (Row Store Index) the data in the CSI is stored in columnar format. Based the size of the data in each column SS creates segments which can hold upto 1M rows. This segments are highly compressed to reduce I/O operations and storage. A column can have multiple Segments if the data is huge (typically more than 1M distinct values). Each segment will have a Hash Dictionary which shows details related to the segment.
+### Columnstore Index
+Column Store Index is type of index introduced in 2012. Unlike traditional (Row Store Index) the data in the CSI is **physically stored in columnar format(column-wise data format)**. Based the size of the data in each column SS creates segments which can hold upto 1M rows. This segments are highly compressed to reduce I/O operations and storage. A column can have multiple Segments if the data is huge (typically more than 1M distinct values). Each segment will have a Hash Dictionary which shows details related to the segment.
 
 - Versions of CSI
+
 	- 2012 Non updatable (No DML), Non clustered
 	- 2014 have clustered CSI, and updatable (no other index can create with CCSI)
 	- 2016 updatable non clustered CSI (row stored NCI are possible when clustered CSI is created)
@@ -470,9 +489,55 @@ Column Store Index is type of index introduced in 2012. Unlike traditional (Row 
 	1. Data is stored in columnar format
 	2. Each column is divided into SEGMENT, and one column can have multiple segments
 	3. A segment max can hold 1M unique values (may be have more than 1M records because of compression of duplicate)
-	4. Save segments to LOB base size of segments (Many saved in multiple LOBs)
-	5. Tuple number (Row group)
+	4. Save segments to LOB(Large object, size is 2GB) base size of segments (Many saved in multiple LOBs)
+	5. Tuple number (Rowgroup)
 	6. For query SELECT col1, col2 FROM table,will read the only few LOB. (less I/O compaire to regular page because regular page is only 8k so same size data will save in much more numbers of pages). Then,  will only pull only col1 and col2 in buffer 
+
+- Clustered CSI  
+A clustered CSI is the physical storage for the entire table
+
+- Logic DML in clustered CSI
+	1. **Deltasotre rowgroup** rows in the index, but not in the columnsotre. To reduce the fragmentation of the column segments and improve performance, the CSI might store some data temporarily into a **clustered index** called a "deltasotre" until the number of the rows reaches a threshold and then mobed into columnstore. When a delta rowgroup reaches maximun number of rows, it becomes closed. And **a tuple mover process** checks for closed row groups. If it find a closed rowgroup, it compresses the rowgroup and stores it into columnstore
+	2. During a large bulk load, most of the rows go directly to the columnstore without passing through the deltasotre. Some rows at the end of the bulk load might be too few in number to meet the minimun size of a rowgroup (102400 rows), and thus go to the deltastore. For small bulk loads (less than 102400 rows), all rows will go directly to the deltastor
+	3. For delte, a **btree list of IDs for deleted rows**. When query, will combine the query results from both CSI and the deltastore.
+
+- For NC CSI  
+A NC CSI is a secondary index that's created on a rowstore table. NC CSI contains **a copy of part or all of the rows and column** in the underlying table
+
+- Query for CSI  
+Queries on CSI use **batch mode execution (vector-based or vectorized execution** which improve two to four times.
+
+
+- Why use cSi
+	1. typically by 10 times data compression. Reduce DW sotrage cost
+	2. For analytic, CSI offers an order of magnitude better performance than a btree index
+
+- Why CSI fast
+	1. columns store values from the same domain commonly have similar values, which result in high compression rates. I/O bottlenecks are minimized
+	2. High compression improve query performance by using a smaller in-memory footprint. So SQL Server can perform more query and data operation in memory
+	3. Batch execution improves query performance typically by two to four times by multiple rows together
+	4. Queries often select only a few columns from a table, which reduces total I/O from the physical media
+
+- When to use clustered CSI?
+	1. Use **clustered columnsotre index** to store **fact tables** and **large dimension** tables for Data Warehousing workloads. This method improves query performance and data compression by up to 10 times.
+		- Each partition has at leat a million rows. Columnstore indexes have rowgroups with each partition. If the table is too small to fill a rowgroup within each partition, you won't get the benefits of Columnstore compression and query performance
+		- Queries primarily perform analytics on ranges of values
+		- Data have minimal updates and deletes (<10%)
+	2. Use a NC CSI to perform analysis in real time on an OLTP workload
+
+- Don't use clustered CSI when
+	- Table requires varchar(max), nvarchar(max), or varbinary(max) data types. Or use NCCSI and not include these columns
+	- Data is not permanent (heap or temporary table is store and delete the data quickly
+	- The table has **less than one million rows per partition** 
+	- More than 10% of the operations on the table are updates and deletes because **large numbers of updates and deletes cause fragmentation**. The fragmentation affects compression rates and query performance until you run an operation called reorganize that forces all data into the columnstore and removes fragmentation.
+
+- How to choose between a rowstore index and columnstore index?
+	1. Rowstore indexes perform best on queries that seek into the data, when searching for a particular value or for queries on a small range of values. Use rowstore indexes with transactional workloads because they tend to require mostly **table seek** instead of table scans
+	2. CSI give high performance gains for analytic queries that scan large amounts of data, especially on large tables. Use CSI in DW and analytics workloads, especially on fact tables, because they tend to require full **table scans** rather than table seeks
+
+- How to combine rowstore and columnstore on the same table?
+	1. use NC CSI with one or more CI and NCI
+
 
 	 
 
@@ -487,6 +552,59 @@ Column Store Index is type of index introduced in 2012. Unlike traditional (Row 
 2. DML operations are not allowed on Non Clustered CSI (untill 2014)
 3. DML operations on Clustered CSI is not straight forward process like traditional indexes.
 4. Does not support some data types such as IMAGE, XML
+
+
+- Columnstore indexes design guidance
+	1. Know about data requirments
+		- How large is my table
+		- Quries mostly perform analytics that scan large ranges of values?
+		- Does workload perform lots of updates and deletes? CSI is better in when data is stable. Update and deleting should less than 10% of rows
+		- Do I have fact and dimension tables for a data warehouse?
+		- Do I need to perform analytics on transactional workload
+
+- Scenario of CSI  
+
+|Type of columnstore|Recommendations for when to use|Compression|
+|-------------------|-------------------------------|-----------|
+|Clustered CSI|1. Traditional data warehouse with a star or snowflake schema; 2. Internet of Things(IOT) workloads that insert large volumes of data with minimal updates and deletes|Average of 10x|
+|NCI on a Clustered CSI|1. Enforce primary key and foreign key constraints on a clustered columnstore index; 2. Speed up queries that search for specific values or small ranges of values; 3. Speed up updates and deletes of specific rows|10x on average plush some additional storage for the NCIs|
+|NC NCI on heap or Btree |1. An OLTP workload that has some analytics queries. We can drop B-tree indexes created for analytics and replace them with one NC CSI; 2 Many traditional OLTP workloads taht perform; 2. Many traditonal OLTP workloads that perform Extract Transform and Load(ETL) operations to move data to a seperate data warehouse. You can eliminite ETL and a seperate data warehouse by creating a NC CSI on some of the OLTP tables|NCCI is an additional index that requires 10% more storage on average|
+|Columnstore index on an inmemory table|Same recommendations as NCCI index on a disk-based table, except the base table is an in-memory table|nCCI is an additional index|
+
+
+- Columnstore index defragmentation
+	- Methods
+		- after 2016, we can use **"REORGANIZE"** to defragment
+		- Before we need to rebuilding the index
+	- Scenario that shows the columnstore index is fragmented
+		1. Multiple delta rowgroups
+		2. Deleted rows
+		3. Ideal compressed rowgroup has a size of 1 million rows. Most compressed rowgroups are of this size but they can be smaller for 1. Bulk importing data and batchsize is less than 1 million rows. 
+```sql
+SELECT *
+FROM sys.dm_db_column_store_group_pysical_stats
+```
+
+- Comman practice in Data Warehouse
+	- Use NCI with CSI to improve performance of table seeks (on key)
+		1. Use NCI to enforce a primary key constraint on CSI
+		2. improve performance by enabling row-level and row-group-level locking
+
+- Data loading for CSI  
+**Bulk loading** is the most performant way to move data into CSI because it operates on batches of rows. (rows less than 100k go to deltastore
+	1. BCP Utility: bulk copy program
+	2. Integration servide
+	3. Select rows from a staging table
+	```sql
+	INSERT INTO <columnsotre index> WITH (TABLOCK) -- after 2016 we have this option that makes insert in parallel threads
+	SELECT <list of columns> FROM <Staging Table>
+	```
+
+	
+**trickle insert** 
+		
+		
+
 
 - Difference bwteen CSI and RSI
 ![Diff CSI RSI](Pictures/SQL/Diff_CSI-RSI.JPG) 
@@ -568,7 +686,7 @@ for spatial data types
 	GO
 	```
 
-	<++>
+	
 	
 - Components
 	- Index\_level: The maxinum number is root, 0 is leaves, others are intermediate
@@ -883,6 +1001,43 @@ TRUNCATE TABLE B32_Candidates
 
 - Merge
 For sync, DML operation will only happens on target table
+```sql
+MERGE targetTable
+Using sourceTable
+	ON mergeCondition
+WHEN MATCHED
+	THEN updateStatement
+WHEN NOT MATCHED BY TARGET
+	THEN insertStatement
+WHEN NOT MATCHED BY SOURCE
+	THEN deleteStatement
+```
+	- Can use **OPENROWSET** to apply bulk operation for source table to apply improve performance
+	```sql
+	SELECT a.*
+   FROM OPENROWSET('Microsoft.Jet.OLEDB.4.0',
+                   'C:\SAMPLES\Northwind.mdb';
+                   'admin';
+                   'password',
+                   Customers) AS a;
+
+	```
+	- Can do batch with **TOP** 
+
+	
+
+
+
+- Insert data for IDENTITY
+```sql
+SET IDENTITY_INSERT TableName ON
+SELECT * 
+INSERT INTO TableName values (),()
+SET IDENTITY_INSERT TableName OFF
+
+```
+
+
 		
 ## DQL
 These commands are used to **retrieve data** from an existing table/tables from a DB
@@ -927,6 +1082,14 @@ To group data based on certain columns
 	- use to show distinct values
 	- NULLs are considered as same in GROUP BY
 	- SELECT with group by, the columsn must be part of GROUP BY clause or aggregate functions
+	- Can use number to use for order by nth feild in select
+	```sql
+	SELECT %%physloc%%, *
+	FROM TABLE
+	ORDER BY 1
+	```
+
+	
 
 <a id = "having"></a>
 - HAVING
@@ -1018,7 +1181,7 @@ Wild cards are not recommended to use because it **cannot use indexes efficientl
 search operation can have 0 or more unknown characters. Ex: 'Alex%' gives out any thing starting with Alex such as Alexa, Alexandra, Alex, Alexia.  
 - ^ (carat) or ! (not)  
 It is used for NOT operator. Ex: '\^[ABC]%' this will retrieves all values except those are not starting with A or B or C.  
-- [] (Square brackets)  
+- \[\] \(Square brackets\)  
 Used for Range of values or multiple values. Ex: '[ABC]%' here list of values specified, so this retrieves info for all those records which starts with A or B or C. '[A-K]%' here range is specified, this retrieves info for all those records which starts with A until K.  
 	- ( LIKE '[afs]%',   
 	- [a-m]% ,   
@@ -1127,6 +1290,34 @@ WHERE descp LIKE '%[%]%' ESCAPE '*'
 		2. Sub queries
 		3. Set operator
 
+- FOR XML
+Change result set to XML format
+	- AUTO
+	- RAW
+	- PATH
+	- EXPLICIT
+
+```sql
+/*
+HouseName	Address
+A	1 Market St
+B	2 Market St
+X	3 Market St
+D	4 Market St
+*/
+SELECT *
+FROM dbo.Houses
+FOR XML PATH;
+
+/* Result will be
+XML_F52E2B61-18A1-11d1-B105-00805F49916B
+<row><HouseName>A</HouseName><Address>1 Market St</Address></row><row><HouseName>B</HouseName><Address>2 Market St</Address></row><row><HouseName>X</HouseName><Address>3 Market St</Address></row><row><HouseName>D</HouseName><Address>4 Market St</Address></row>
+*/
+
+```
+
+
+
 ## Set Operation
 
 SET Operators are used to **compare or append records (vertically)** not based on just a column/columns. Each record from first dataset is compared or appended to the second data set.
@@ -1221,6 +1412,8 @@ include the position about date zone
 - USER DEFINED DATA TYPE
 - DATE  
 	'02/29/1961' as date will get erro because SQL will automatic convert string to date. This date is not exsist and thus cannot successfully internal convert to date.
+
+- NULL no datatype
 
 |Category|Data Type|Size|Max Val|
 |--------|---------|----|------|
@@ -1466,22 +1659,244 @@ Can be nested
 
 ## Window functions
 OVER clause means using a window function
+
+- Properties
+	- OVER clause cannot be used with the CHECKSUM aggregate function
+	- RANGE **cannot** be used with 1 PRECEDING or 1 FOLLOWING. Should be ROWS 2 PRECEDING
+
+
+- ROWS RANGE
+	- UNBOUNDED PRECEDING (Start of the partition)
+	- 2 (any positive int) PRECEDING, 2 rows or values to precede the current row
+	- CURRENT ROW (Start or end at the current row when used with ROWS, When used with RANGE, can be specified as both a starting and ending point
+	- BETWEEN (for ROWS and RANGE to specify the lower and upper boundary points of the window
+	- UNBOUNDED FOLLOWING (windows ends at the last row of the partition
+	- 2 (any positive int) FOLLOWING (to indicate the number of rows or values to follow the current row, E.G. ROWS BETWEEN 2 FOLLOWING AND 10 FOLLOWING)
+	- **By default, if ROWS/RANGE is not specified but ORDER BY is specified, RANGE UNBOUNDED PRECEDING AND CURRENT ROW is used as default for window frame)**
+	- ranking functions cannot accept ROWS/RANGE
+	
+```sql
+SELECT BusinessEntityID, TerritoryID   
+    ,CONVERT(varchar(20),SalesYTD,1) AS  SalesYTD  
+    ,DATEPART(yy,ModifiedDate) AS SalesYear  
+    ,CONVERT(varchar(20),SUM(SalesYTD) OVER (PARTITION BY TerritoryID   
+                                             ORDER BY DATEPART(yy,ModifiedDate)   
+                                             ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING ),1) AS CumulativeTotal  
+FROM Sales.SalesPerson  
+WHERE TerritoryID IS NULL OR TerritoryID < 5;
+/*
+BusinessEntityID TerritoryID SalesYTD             SalesYear   CumulativeTotal
+---------------- ----------- -------------------- ----------- --------------------
+274              NULL        559,697.56           2005        1,079,603.50
+287              NULL        519,905.93           2006        692,430.38
+285              NULL        172,524.45           2007        172,524.45
+283              1           1,573,012.94         2005        2,925,590.07
+280              1           1,352,577.13         2005        2,929,139.33
+284              1           1,576,562.20         2006        1,576,562.20
+275              2           3,763,178.18         2005        3,763,178.18
+277              3           3,189,418.37         2005        3,189,418.37
+276              4           4,251,368.55         2005        6,709,904.17
+281              4           2,458,535.62         2005        2,458,535.62
+*/
+
+-- If want to make sure is running total
+SELECT BusinessEntityID, TerritoryID
+    ,CONVERT(varchar(20),SalesYTD,1) AS  SalesYTD
+    ,DATEPART(yy,ModifiedDate) AS SalesYear
+    ,CONVERT(varchar(20),SUM(SalesYTD) OVER (PARTITION BY TerritoryID
+                                             ORDER BY DATEPART(yy,ModifiedDate)
+                                             ROWS UNBOUNDED PRECEDING),1) AS CumulativeTotal
+FROM Sales.SalesPerson
+WHERE TerritoryID IS NULL OR TerritoryID < 5;
+
+/*
+BusinessEntityID TerritoryID SalesYTD             SalesYear   CumulativeTotal
+---------------- ----------- -------------------- ----------- --------------------
+274              NULL        559,697.56           2005        559,697.56
+287              NULL        519,905.93           2006        1,079,603.50
+285              NULL        172,524.45           2007        1,252,127.95
+283              1           1,573,012.94         2005        1,573,012.94
+280              1           1,352,577.13         2005        2,925,590.07
+284              1           1,576,562.20         2006        4,502,152.27
+275              2           3,763,178.18         2005        3,763,178.18
+277              3           3,189,418.37         2005        3,189,418.37
+276              4           4,251,368.55         2005        4,251,368.55
+281              4           2,458,535.62         2005        6,709,904.17
+*/
+
+```
+
+
 - Types
-	- Analytical (22 2012)
-		- LAG
+	- Analytic (22 2012)  
+	Analytic funtions is a kind of window funtion usually used for analytic
+		- LAG (2012)
 		Fetch values in the previous row(s) based on SORT operation
-		- LEAD  
+			- scalar_expression (expression of column)
+			- (Optional) offset (how many rows previous, by default is 1)
+			- (Optional) default (if beyond the scope, return this value, by default is NULL
+		```sql
+		LAG(scalar_expression [, offset] [, default]) OVER ([partition_by_clause] order_by_clause)
+
+		USE AdventureWorks2012;
+		GO
+		SELECT BusinessEntityID, YEAR(QuotaDate) AS SalesYear, SalesQuota AS CurrentQuota,
+			   LAG(SalesQuota, 1,0) OVER (ORDER BY YEAR(QuotaDate)) AS PreviousQuota
+		FROM Sales.SalesPersonQuotaHistory
+		WHERE BusinessEntityID = 275 and YEAR(QuotaDate) IN ('2005','2006');
+
+		-- LAG(SalesQuota, 1, 0) means get the previous 1 row and if beyond the scope, return 0
+		-- LAG(SalesQuota) means get the previous 1 row and if beyond the scope, return "NULL"
+		
+		```
+
+		
+		- LEAD (2012)
 		Fetch values in the next row(s) based on SORT operation
 			- 3 parameters 
 			1. Scalar expression/column
-			2. Offset number of rows (optional and default 1)
-			3. Default in case of there is matching offset number for record (optional and default NULL)
+			2. (Optional)Offset number of rows (optional and default 1)
+			3. (Optional)Default in case of there is matching offset number for record (optional and default NULL)
 			```sql
+			LEAD ( scalar_expression [ ,offset ] , [ default ] ) OVER ( [ partition_by_clause ] order_by_clause )
 			SELECT OrderDate, TotalDue, LEAD(TotalDue) OVER(ORDER BY OrderDate)b
 			FROM Adventureworks. Sales. SalesOrderHeader
 
-		- FIRST_VALUE
-		- LAST_VALUE
+			CREATE TABLE T (a int, b int, c int);
+			GO
+			INSERT INTO T VALUES (1, 1, -3), (2, 2, 4), (3, 1, NULL), (4, 3, 1), (5, 2, NULL), (6, 1, 5);
+
+			SELECT b, c,
+				LEAD(2*c, b*(SELECT MIN(b) FROM T), -c/2.0) OVER (ORDER BY a) AS i
+			FROM T;
+			
+			-- Result set
+
+			/*
+						b           c           i
+			----------- ----------- -----------
+			1           -3          8
+			2           4           2
+			1           NULL        2
+			3           1           0
+			2           NULL        NULL
+			1           5           -2
+			*/
+			```
+
+		- FIRST_VALUE (2019)
+		- LAST_VALUE  (2019)
+		Default is from beginning to current row. If want to get truely las value, need to use "RANGE BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING"	
+		```sql
+		USE AdventureWorks2012;  
+		GO  
+		SELECT Department, LastName, Rate, HireDate,   
+			LAST_VALUE(HireDate) OVER (PARTITION BY Department ORDER BY Rate) AS LastValue  
+		FROM HumanResources.vEmployeeDepartmentHistory AS edh  
+		INNER JOIN HumanResources.EmployeePayHistory AS eph    
+			ON eph.BusinessEntityID = edh.BusinessEntityID  
+		INNER JOIN HumanResources.Employee AS e  
+			ON e.BusinessEntityID = edh.BusinessEntityID  
+		WHERE Department IN (N'Information Services',N'Document Control');
+
+		/* result set
+		Department                  LastName                Rate         HireDate     LastValue
+		--------------------------- ----------------------- ------------ ----------   ----------
+		Document Control            Chai                    10.25        2003-02-23   2003-03-13
+		Document Control            Berge                   10.25        2003-03-13   2003-03-13
+		Document Control            Norred                  16.8269      2003-04-07   2003-01-17
+		Document Control            Kharatishvili           16.8269      2003-01-17   2003-01-17
+		Document Control            Arifin                  17.7885      2003-02-05   2003-02-05
+		Information Services        Berg                    27.4038      2003-03-20   2003-01-24
+		Information Services        Meyyappan               27.4038      2003-03-07   2003-01-24
+		Information Services        Bacon                   27.4038      2003-02-12   2003-01-24
+		Information Services        Bueno                   27.4038      2003-01-24   2003-01-24
+		Information Services        Sharma                  32.4519      2003-01-05   2003-03-27
+		Information Services        Connelly                32.4519      2003-03-27   2003-03-27
+		Information Services        Ajenstat                38.4615      2003-02-18   2003-02-23
+		Information Services        Wilson                  38.4615      2003-02-23   2003-02-23
+		Information Services        Conroy                  39.6635      2003-03-08   2003-03-08
+		Information Services        Trenary                 50.4808      2003-01-12   2003-01-12
+		*/
+
+		USE AdventureWorks2012;
+		SELECT BusinessEntityID, DATEPART(QUARTER,QuotaDate)AS Quarter, YEAR(QuotaDate) AS SalesYear,
+			SalesQuota AS QuotaThisQuarter,
+			SalesQuota - FIRST_VALUE(SalesQuota)
+				OVER (PARTITION BY BusinessEntityID, YEAR(QuotaDate)
+					  ORDER BY DATEPART(QUARTER,QuotaDate) ) AS DifferenceFromFirstQuarter,
+			SalesQuota - LAST_VALUE(SalesQuota)
+				OVER (PARTITION BY BusinessEntityID, YEAR(QuotaDate)
+					  ORDER BY DATEPART(QUARTER,QuotaDate)
+					  RANGE BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING ) AS DifferenceFromLastQuarter
+		FROM Sales.SalesPersonQuotaHistory
+		WHERE YEAR(QuotaDate) > 2005
+		AND BusinessEntityID BETWEEN 274 AND 275
+		ORDER BY BusinessEntityID, SalesYear, Quarter;
+
+		/* result set
+		BusinessEntityID Quarter     SalesYear   QuotaThisQuarter      DifferenceFromFirstQuarter DifferenceFromLastQuarter
+		---------------- ----------- ----------- --------------------- --------------------------- -----------------------
+		274              1           2006        91000.00              0.00                        -63000.00
+		274              2           2006        140000.00             49000.00                    -14000.00
+		274              3           2006        70000.00              -21000.00                   -84000.00
+		274              4           2006        154000.00             63000.00                    0.00
+		274              1           2007        107000.00             0.00                        -9000.00
+		274              2           2007        58000.00              -49000.00                   -58000.00
+		274              3           2007        263000.00             156000.00                   147000.00
+		274              4           2007        116000.00             9000.00                     0.00
+		274              1           2008        84000.00              0.00                        -103000.00
+		274              2           2008        187000.00             103000.00                   0.00
+		275              1           2006        502000.00             0.00                        -822000.00
+		275              2           2006        550000.00             48000.00                    -774000.00
+		275              3           2006        1429000.00            927000.00                   105000.00
+		275              4           2006        1324000.00            822000.00                   0.00
+		275              1           2007        729000.00             0.00                        -489000.00
+		275              2           2007        1194000.00            465000.00                   -24000.00
+		275              3           2007        1575000.00            846000.00                   357000.00
+		275              4           2007        1218000.00            489000.00                   0.00
+		275              1           2008        849000.00             0.00                        -20000.00
+		275              2           2008        869000.00             20000.00                    0.00
+
+		(20 row(s) affected)
+		*/
+		```
+		
+		- CUME_DIST (2019)???
+		Calculates the cumulative distribution of a value within a group of values; treats NULL values by default as the lowest possible values; for row r acending, (number of rows <= row r)/(all rows numbers)
+		- PERCENT_RANK (2019)  
+		(numbers of rows < row r) / (numbers of all rows -1)
+		- PERCENT_DISC  
+		(PErCENT_DISC(0.5) to find a median)
+		- PERCENTILE_COUNT (2019)
+		Calculates a percentile based on continuous distribution of the column value in SQL Server  
+		```sql
+		USE AdventureWorks2012;  
+  
+		SELECT DISTINCT Name AS DepartmentName  
+			  ,PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ph.Rate)   
+									OVER (PARTITION BY Name) AS MedianCont  
+			  ,PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY ph.Rate)   
+									OVER (PARTITION BY Name) AS MedianDisc  
+		FROM HumanResources.Department AS d  
+		INNER JOIN HumanResources.EmployeeDepartmentHistory AS dh   
+			ON dh.DepartmentID = d.DepartmentID  
+		INNER JOIN HumanResources.EmployeePayHistory AS ph  
+			ON ph.BusinessEntityID = dh.BusinessEntityID  
+		WHERE dh.EndDate IS NULL;
+		/* result set
+		DepartmentName        MedianCont    MedianDisc
+		--------------------   ----------   ----------
+		Document Control       16.8269      16.8269
+		Engineering            34.375       32.6923
+		Executive              54.32695     48.5577
+		Human Resources        17.427850    16.5865
+		*/
+		```
+
+		
+
+		
 	- Aggregate
 	- PARTITION BY 
 	GROUP BY : Give pysical make groups, create groups
@@ -1513,7 +1928,12 @@ It is a type of WINDOW functions and it uses OVER clause to generate windows and
 		- Most recent Activity Based on DATE ( depends on business requirements)
 		- Firt/Secend Highest 
 		- Do not skip ranks
-		
+	- NTILE  
+	Distributes the rows in an ordered partition into a specified number of groups; for 53 rows with 5 groups, number of rows in first group = ceil(53/5) = 11; then No2group = ceil((53-11)/(5-1))=11; then No3group = ceil((42-11)/(4-1))=11; No4group = ceil((31-11)/(3-1))=10 (divisible, the rests are 10)
+	```sql
+	NTILE(3) means divided to 3 groups
+	```
+
 ## Conversion Functions  
 - Types
 	- CAST    
@@ -1705,7 +2125,7 @@ It is a type of WINDOW functions and it uses OVER clause to generate windows and
 	-- SQL server will delete the corresponding records in the child table when the data in the parent table is deleted
 	```
 
-	<++>
+	
 	3. (recommanded)Insert new value in parent --> change child to new value --> delete old value in parent
 
 	```sql
@@ -1970,6 +2390,11 @@ It can hold multiple records
 	- DML allowed
 - Usage
 	- Minimal locking/block. Avoid hold the original table and let others can access that table
+```sql
+DECLARE @Temp TABLE(ID INT, Name VARCHAR(50));
+```
+
+
 		
 <a id = "temptable"></a>
 
@@ -2046,6 +2471,31 @@ Return to [local temp table](#local), [global temp table](#global)
 - Difference between temp table and table variables
 <a id = "dtttv"></a>
 ![DiffTemp-TableVariable.JPG](Pictures/SQL/Diff_Temp-TableVariable.JPG) 
+
+|Item|Table variable|Temp Table|
+|Scope|Batch|Session|
+|Storage|TempDB|TempDB|
+|Partitioned|Cannot|Cannot|
+|Statistics|Can only have clustered index with no statistics|
+|Transaction|Not support|
+|Identity|Support but no explicit inserts|
+|DML|Support all|
+|DDL|Not Support|
+|----|--------------|----------|
+|----|--------------|----------|
+|----|--------------|----------|
+|----|--------------|----------|
+|----|--------------|----------|
+|----|--------------|----------|
+|----|--------------|----------|
+|----|--------------|----------|
+|----|--------------|----------|
+|----|--------------|----------|
+|----|--------------|----------|
+|----|--------------|----------|
+|----|--------------|----------|
+|----|--------------|----------|
+
 Return to [temp table](#temptable), [table variable](#tablevariable)    
 
 # Combination questions
@@ -2095,7 +2545,7 @@ Temporary views
 		- It has 2 parts: Anchor Member, Recursive Member
 		- UNION ALL is mandatory between Anchor and Recursive members
 		- Other SET Operators are possible with in Anchor or Recursive but not between Anchor and Recursive
-		- In recursive member we cannot use OUTER JOINs, subquery referencing CTE, groupby
+		- In recursive member we cannot use DISTINCT, GROUP BY, PIVOT, HAVING, TOP, OUTER JOINs, subquery referencing CTE
 		- Default recursion is 100, it fails after 100; max recursion is 32767 which can be changed using an option called HINT
 
 		```sql
@@ -2109,12 +2559,16 @@ Temporary views
 		WHERE StartPos<100
 		)
 		SELECT * FROM CTE_Num
-		OPTION(MAXRECURSION 0)
+		OPTION(MAXRECURSION 10)
 
 		-- Find position of a specific character in a string taking into consideration of appearance (Ex. 2nd, 3rd etc)
 		DECLARE @S
 		```
+		- Usage
+			1. Loop
+			2. Find hierarchical structure
 		- Advantages:
+			
 			1. No need to define the structure as in Temp Tables and Table variables
 			2. More readable code
 			3. Multiple CTEs can defined with one WITH clause 
@@ -2403,7 +2857,7 @@ Procedures can implement **business logic**
 	```sql
 	CREATE PROCEDURE dbo.spTestRecompile @ID
 	WITH RECOMPILE  
-	AS  
+	AS 
 	SELECT 1
 	GO
 	```
@@ -2415,6 +2869,7 @@ Procedures can implement **business logic**
 	```
 	5. Restart the SQL server. After restart, all store procedures will be recompile
 - [Difference between procedure and function]()
+
 <a id="diffprocfn"></a>
 ![Diff-proc-fn](Pictures/SQL/Diff_SP-FN_New.png) 
 
@@ -2761,7 +3216,7 @@ To MERGE or append 2 partitions into 1. In the above scenario once the data is s
 
 
 # Bulk Operations
-Bulk operations are used to import large volume of data (millions of records) into SQL or out of SQL server. Usually Builk Operations bypass logging mechanism with certain DB property. There are mltiple different properties that can be configured as part of Bulk Operations to handle different scenarios
+Bulk operations are used to import large volume of data (millions of records) into SQL or out of SQL server. Usually Bulk Operations bypass logging mechanism with certain DB property. There are multiple different properties that can be configured as part of Bulk Operations to handle different scenarios
 - Different Bulk Operations available in SQL server
 1. BCP (Bulk/
 
@@ -2792,9 +3247,9 @@ Back up is a mechanism that is provided by SQL Server to make copies of data at 
 loging: give the limitation to loging. When exceed this limitation, all operation is forbidded.
 set the bulk operation to select into : in recovery settings
 - Types
-	- Full  
+	- Full recovery
 	Every transaction is detailed logged
-	- Simple  
+	- Simple recovery 
 	For simple, the log file's backup flag is always yes and then will be overwrite. The primary file will only save I have an operation but don't log the data affected
 	- Bulk operations
 	For bulk operations, the data will not got into the Logfile and deriectly go to primary file and thus cannot recovery
@@ -2907,9 +3362,20 @@ GO
 
 ## DML trigger
 Run when DML event happens
-	- INSERT
-	- UPDATE
-	- DELETE
+- INSERT
+- UPDATE
+- DELETE
+
+```sql
+CREATE TRIGGER tg_name
+ON schema.table
+AFTER INSERT, UPDATE, DELETE
+AS
+	EXEC
+```
+
+
+
 ## Logon trigger
 Runs in response to the LOGON event that raised when a user's session is being established
 
@@ -2988,7 +3454,7 @@ public static void executeBatchUpdate(Connection con) {
 	6. Look into fragmentation of indexes and REBUILD or REORGANIZE as necessary
 	7. Create INDEX VIEWS to use multiple tables which are frequently searched
 	8. When data retrieval is large usually happening tables that doesn't have any DML go for Column Store Index
-	9. Use SQL Profiler and DTA to identify the need of new indexes, indexed views, partitions on the tables
+	9. Use SQL Profiler and DTA to identify the need of new indexes, indexed views, partitions on the tables 
 	10. Create a trace to find the statistics and update or create them as necessary
 
 1. Use TRUNCATE when possible
@@ -3266,27 +3732,31 @@ scenerio for temp table and table variable
 how to optimize store procedures
 
 
-Optimize store procedure:
+# Optimize store procedure:
+
 1. "SET NOCOUNT OFF" do not calculate the number of rows affected by DML statements; reduce network traffic
 ```sql
 SET NOCOUNT OFF;
 ```
-
-2. Use two part names schema.table ???
+2. Use two part names schema.table 
 3. avoid using sp\_prefix in store procedure name, use usp\_procedurename instead; Because when use sp\_procedurename, server will check master database first. use usp can reduce search time in master database
+4. Use sp\_executesql store procedure instead of EXEC() because this procedure support parameters
+5. Modularize breakd large store procedure into several sub-procedures.
 4. Avoid lengthy transaction; Long transaction block will decrease performance by blocking resource
 5. use select 1 to test whether exists
 ```sql
 IF EXISTS(SELECT 1 FROM sys.objects)
 ```
 5. Use columns names instead of use * ; avoid network traffic???
-7. Use NOLOCK statement in all cases or it should not be used for all cases```sql
+7. Use NOLOCK statement in all cases or it should not be used for all cases
+
+```sql
 SELECT A, B FROM table WITH (NOLOCK)
 SELECT C, D FROM table WITH (NOLOCK)
 ```
 
 
-
+# Other questions
 disadvantage index view
 disdvantage of dynamic sql
 different ways to run dynamic sql
@@ -3294,3 +3764,150 @@ scenario of temp table and table variable
 Scenario to use temp table
 1. When we need to create an index which cannot be created on table variable
 2. We need large amount of INSERT and DELETE; temp table support TRUNCATE which table variable not; use TRUNCATE is faster than DELETE
+
+We can create indexes in table varaible by decare primary key, unique key in the declare, no check, FK is not allowed
+table variable not support identity
+
+# Optimization of SQL Query
+- Check performane
+	- Execution plan
+	- Data profiler to slow running query and bottleneck
+	- check index fragmentation
+	- Use SQL Profiler and DTA to identify the need of new indexes, indexed views, partitions on the tables
+.
+- For DML
+	- Use batch operation when use DELETE or UPDATES
+	- Avoid use trigger if have lots of DML
+	- use truncate if possible
+	- use bulk operation if possible
+
+- create proper indexes
+	- Check execution plan to find the part to imporve (SORT, RID lookup, key lookup)
+	- columnstore index for large range retreival
+	- clustered index on key
+	- NCI with covering, filtering to improve performance
+	- Use INT for CI if possible
+	- Create NCI for the FK reffered
+
+- Use index efficiently
+	- Avoid use WILD CARD
+	- Avoid use function in WHERE caluses
+
+- avoid waste sources
+	- avoid use ORDER BY if not necessary
+	- Use UNION ALL instead of UNION if not matter
+	- Avoid using UDF in WHERE clause
+
+- For same functionaily, use the query need less sources
+	- Use JOIN related sub query
+	- Use windows function to calculate running total rather than subquery
+	- Use CTE instead of WHILE and CURSOR if possible
+	- Use INLINE table functions rather than MULTI LINE table functions if possible
+	- for small dataset use table variable over temp table
+	- Use THROW instead of RAISERROR
+	- create stored procedure for commonly used query
+	
+
+- Query logic
+	- Filter data as much as possible
+	- Use proper control flow
+	- Avoid using deep nest function, sp, query
+
+- format of query
+	- Avoid SELECT *
+	- User 3 part names
+	- SET NOCOUNT ON
+	- Modularize stored procedure for debugging and solve parameter sniffing
+	- For scalar function, use RETURN NULL ON NULL INPUT
+	- use NOlOCK if possible
+	- Minimize implicit conversion
+
+- Proper query
+# How to deal with a large volume of data
+1. For data insert
+	- BCP (bulk copy propgram) to write data
+2. For sql server archetect
+	- Use columnstore index (bulk data retreaval)
+	- Use partition
+3. For SQL settings
+	- "FILEGROWTH" set to large number
+4. For I/O
+	- Partition in different hard disk to improve I/O
+memmory exceed
+
+unit test, time comsume
+
+disable indexes when writing data
+optimization indexes 
+out of memory
+MDF incremental rate
+MDF, LDF stored in seperate hard disk
+ran out of memory, timeout error
+
+
+
+to maximize performance with parallel operations, use same number of partitions as processor cores. Up to a maximun of 64 (mamixmum number of parrallel processors that SQL server can utilize)
+DML and DDL can fail due to insufficient memory (out of memory) memory-intensive process
+Load bulk load consider possibility of lock escalation --> reduce concurrency of applications
+	- smaller BATCHSIZE options for BULK INSERT statement for BATCHSIZE<5000
+
+ALTER TABLE ... SWITCH...PARTITION (schema modification (Sch-M) lock)`
+
+NONCLUSTERED COLUMNSOTRE INDEX
+```sql
+ALTER INDEX NCCI ON tableanme DISABLE
+INSERT INTO table values ()
+ALTER INDEX NCCI ON tableanme REBUILD
+```
+
+Bulk load to columnstore index is parralel and do not need to have a table lock. Becuase when split row groups aready have execlusive lock and compressed, Is 
+CSI is miminal logging, deltastore full logging
+FILEGROWTH = 1024 MB
+
+- Partition and columnstore index
+1. Create new filegroup
+2. add file to to filegroup
+3. drop COlumnstore index
+4. Change partition schema
+5. alter partition function, split range. 
+6. re-create columnstore index
+
+- Using staging table to improve performance
+1. Load data to heap staging table without any indexes (load in heap is the most fast way)
+2. Load data to starget columnstore index
+```sql
+INSERT INTO <columnstore index>  
+SELECT <list of columns> FROM <Staging Table>
+```
+
+
+
+DROP index CCI\_Email on dbo.EMail
+
+
+# Batch operation
+To improve performance when multiple updates to a SQL Server database are occurring, the Microsoft JDBC Driver for SQL Server provides the ability to submit multiple updates as a single unit of work, also referred to as a batch.
+```sql
+public static void executeBatchUpdate(Connection con) {  
+   try {  
+      Statement stmt = con.createStatement();  
+      stmt.addBatch("INSERT INTO TestTable (Col2, Col3) VALUES ('X', 100)");  
+      stmt.addBatch("INSERT INTO TestTable (Col2, Col3) VALUES ('Y', 200)");  
+      stmt.addBatch("INSERT INTO TestTable (Col2, Col3) VALUES ('Z', 300)");  
+      int[] updateCounts = stmt.executeBatch();  
+      stmt.close();  
+   }  
+   catch (Exception e) {  
+      e.printStackTrace();  
+   }  
+}
+```
+# System information schema views
+An information schema view is one of several methods SQL Server provides for obtaining **metadata**. Information schema views provide an internal, system table-independent view of the SQL Server metadata. 
+```sql
+SELECT TABLE_CATALOG, COLUMN_NAME, DATA_TYPE, CHARACTER_OCTET_LENGTH)
+FROM AdventureWorks2012.INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = N'Product';
+```
+
+

@@ -25,14 +25,37 @@ appFigures, QuickBooks Online, zendesk, Github, Twilio, SweetIQ
 Web, SharePoint List, ODate Feed, Hadoop File(HDFS), Active Directory, Microsoft Exchange, Dynamics CRM Online, Facebook, Google Analytics, SAP Business Object BI Universe, Salesforce Objects, Salesforce reports, ODBC Query, ODBC Tables
 
 ### Modes to extract data from sources
+
+| |Import|DirecQuery|LiveConnect|
+|-|------|----------|-----------|
+|Source|All Dataset|Relational database|SSAS database|
+|Performance|Fastest|Slowest|???|
+|PowerQuery(Query Editor)|Support|Support some|Not support???|
+|Functionality|All|"Edit Queries" only for relational database|1. Cannot create column 2. Cannot create hierachy; 2. can create "Measure"|
+|Capacity|1 GB
+|refresh|1. Manual refresh 2. Schedule refresh|1. Manual refresh; 2. Scheduled cache refresh (dashboards tiles are cached). Refresh prequency min 15 mins, max weekly|1. Manual refresh; 2. Min 15 mins|
+
+
 1. From SQL Server
 	- Import  
 	The selected tables and columns are imported into Power BI Desktop. Use **refresh** data to import the full dataset again
 	**1 GB dataset limitation** 
 	- Direct Query  
 	No data is imported or copied into Power BI Desktop. For relational sources, the selected tables and columns appear in the **Fields list**. Fore multi-dimensional sources like SAP Business Warehouse, the dimensions and measures of the selected cube appear in the Fields list. When create or interact with a visualization, Power BI Desktop queries the underlying data source, so always viewing current data
-		- Benefits
-			1. Build visualizations over **large dataset** which cannot import all the data with pre-aggregation
+		- Advantage
+			1. Work on large datasize
+			2. import method will include data in the PowerBI file. This will not make the file size heavy
+
+		- Disadvantage
+			1. Performance is slow
+			2. Not support all functionality of Power Query(Query Editor), cannot merge???
+				- Supported: "Remove Columns", "Group By", "Sort", "New Measure", "New Column", 
+				- Not supported Power Query: "Change datatype", "Remove Rows", "Split Column", "Replace Values" 
+			3. Cannot preview the data, 
+			4. TimeIntelligence functions are not supported
+
+			
+
 			2. Underlying data changes can reuqire a refresh of data
 			3. Do not have 1 GB dataset limitation
 		- Limitations of DirectQuery
@@ -51,6 +74,7 @@ Web, SharePoint List, ODate Feed, Hadoop File(HDFS), Active Directory, Microsoft
 	- Connect Live ???  
 	
 		- Limitations
+			- Cannot calculate column but can create measure
 			- Cannot be use with any other source together
 	Cannot create new column, new measure or new quick measure
 			- cannot manage relationship???
@@ -75,8 +99,21 @@ Web, SharePoint List, ODate Feed, Hadoop File(HDFS), Active Directory, Microsoft
 		- SQL Server Analysis Services
 		- Power BI datasets
 		- Azure Analysis Services
+	- Cannot apply row-level secury for Live Connection Dataset (all modeling functionalities are not supported (Management Relationships, new column, new table, new parameter, sort, data type, format, manage roles, new group, mark as date table, Q&A Setup) **except "New Measure"** 
 
 ## Comparison of Import, DirectQuery, Live connections
+defference
+1 directQuery, live connection
+1. when we have large OLAP, the performance is very flow, the archetecture is complex
+2. Build cube/ columns, drop table column we do not use, create hierarchey, create new measure. When we connect live to PowerBI, the propermance is better than DirectQuery from Whole OLAP system.
+3. For performance, Import > connect live > query
+
+-Ad
+	1. most fast
+	2. data compression
+	3. all functionality is able for Import
+
+
 |Category|Import data|DirectQuery|Live Connection|
 |---|---|---|---|
 |Data model size limitation|1. Tied to license; 2. Power BI Pro; 3. 1 GB dataset; 4 Power BI premium; 5 Capacity base|Limited only by underlying data source hardware|1. SQL server analysis services; 2. Limited only by underlying data source hardware; 3. power BI service; 4. Power BI service same data set size limits as import data|
@@ -249,6 +286,7 @@ capture the currently configured view of a report page
 	- configure for **imported** 
 	- use for DirectQuery
 	- on-premises model
+	- By default, RLS is use for Single directions, nned to manually enable bi-directional cross-filter with RLS with "Apply security filter in both directions" in "Management relationship"
 
 - Steps to create roles
 	1. "manage roles" on "Modeling"
@@ -256,6 +294,19 @@ capture the currently configured view of a report page
 	3. Write "Table filter DAX expression"
 	4. check for DAX syntax and click "Save"
 	5. view reports as created role and test the DAX filters
+
+- Functions for Dynamic RLS
+	- username()  
+	DOMAIN\\username
+	- userprincipalname()  
+	username@contoso.com
+
+- Limitations
+	1. If you previously defined roles and rules in the Power BI service, you must re-create them in Power BI Desktop.
+	2. You can define RLS only on the datasets created with Power BI Desktop. If you want to enable RLS for datasets created with Excel, you must convert your files into Power BI Desktop (PBIX) files first. Learn more
+	3. Only Import and DirectQuery connections are supported. Live connections to Analysis Services are handled in the on-premises model.
+
+
 
 # Optimize data model
 1. Improve query performance in SSMS such as execution plan, use store procedure(sniffing), index
@@ -268,15 +319,24 @@ capture the currently configured view of a report page
 7. use filters to limit report visuals to diaplay only what is needed
 8. limit the number of visuals on page
 
-# Publishing report
+# Power BI Service
+## Publishing report
 "Home" -\> "Publish"
 
+## Security
+1. We can create row in "Desktop" but we can only assign users to a role within Power BI service
 ## workspace
 workspace are some kind of destination folders which are chosen while publishing reports to powerBI services
 	- Dashboards
 	- Report
 	- Workbooks
 	- Dataset
+
+- Set the access:
+	- Admin
+	- Member
+	- Contributor
+	- Viewer
 
 ### components
 - Dashboards  
@@ -330,12 +390,19 @@ usage metrics helps to understand the impact of dashboard and report
 - unique viewers per day
 - total views rank
 
-## Getways
+## on-premises data Gateway
+The on-premises data gateway acts as a bridge to provide quick and secure data transfer between on-premises data and several Microsoft cloud services including Power BI, PowerApps, PowerAutomate, Azure Analysis Services, and Azure Logic Apps
+- Two modes
+	- Personal mode  
+	Allow one user to to connect to sources and can't be shared with others. And only can be used with PowerBI (only person who creates reports and don't need to share any data source with others)
+	- Enterprise mode  
+	Allows multiple users to connect to multiple on-premises data sources.
 A gateway is software that facilitates access to data 
-- On-premises data gateway (personal mode), allows one user to connect to sources and cannot shared with others (can only be used with Power BI)
-- On-premises data gateway: multiple users to connect to multiple on-premises data sources and can be used by power BI, PowerApps, Flow, and Azure logic apps, all with single gateway installation
 
--entriprise ??
+- Authentication Methd
+	- "admin\username"
+
+
 ## Data refresh
 - package refresh
 - Model/data refresh
@@ -360,10 +427,28 @@ The data on dashboard can be classified on the sensitivity of data
 
 ### Parameters
 
+### Methods to add tiles in dashboard
+1. In dashboard, use "Add tile", can add web content, image, text box, video, custom streaming data(access, API, Azure stream, Pubnub)
+2. On reports "pin
 
-### Methods to create tiles in dashboard ???
-	- in dashboard, use "Add tile"
-	- in report, pinning a "live tiles
 
+### Account
 
+- Free
+	- for PowerBI Desktop, cannot use server for the PowerBI Service, Dashboard, workspace, subscribe, 
+	
+
+- Pro
+	- 10$ for each account, use functionalitie except tenant settings, for example data clasification (high, medium, low)
+
+- Premium
+Dedicated capacity
+	- P1, P2, P3 distinct RAM, CPU
+
+# Geo
+Default: "Bing map"
+
+# Subscripiton
+
+# M-language (case sensitive)
 

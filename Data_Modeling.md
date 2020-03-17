@@ -92,8 +92,8 @@ Budget, strategy
 	2. Browser is available with required URL and permissions to run  
 >EX
 
-|-----|-----|--------------|------ ------|------|--------|  
 |Case#|Steps|ExpectedResult|Actual Result|Status|Priority|  
+|-----|-----|--------------|------ ------|------|--------|  
 |	1|1.Open report; 2.Click on drop down for report Month|User sees all 12 months with full names|Month Numbers|Failed|2|
 - Test Strategy Document(QA): **for QA team** similar to FRD(Functional Requirements)
 - Test Plan(QA): **for QA team** Plan for whole application testing

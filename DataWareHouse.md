@@ -6,6 +6,14 @@
 	3. Static
 	4. Integrated
 
+## Fact-Dimension design
+- Benifits of Fact-Dimension
+1. In most of the cases, data insertion mostly in fact. Seperate Fact and dimension can focused on few fact tables
+2. Dimension usually grow slow, so have less index fragmentation problem. We can maintain index accordingly
+3. Fact grow exponentially, so we designing indexes and partitioning and partition maintenance for only fact is more easily
+4. Data in facts is rarely updated when compared with dimensions
+5. Easy to do ETL
+
 - Components
 	- Surrogate key  
 	Replacement for primary keys, because we want to keep all histories (not update) so the PK in OLTP possible to have duplicates and thus cannot work ad the PK of in OLAP systems
@@ -72,6 +80,12 @@ Some dimensions are connected to a fact multiple times same key from dimension t
 
 ## Late Arriving Dimension/Early Arriving Fact 
 This is not a type of a dimension it is the availability of fact and dimension data. If the fact information is arrived to DWH earlier than Dimension we call this as early arriving dimension.		
+
+- How to handle this scenario
+	1. Hold the fact record until Dimension record is available
+	2. Use 1 "Unknown" or default Dimension record to match all late arriving facts
+	3. Inferring the Dimension record
+	4. Late Arriving Dimension and SCD Type 2 changes
 	
 ## Inferred Dimension/Inferred Dimension Members 
 As Dimension tables are parent tables they have to be loaded first before loading Fact tables. In some special scenarios fact data is received first before dimension data, this scenario is called Early Arriving Fact or Late Arriving Dimension. To handle loading process for this scenario, an inferred member is created in the dim table with a proper business key from source and a SK is generated for the row and rest of the column values are entered NULL values. This dimension is called Inferred dimension and row with the above values is called Inferred Member. Ex: Gift card scenario.
@@ -133,46 +147,46 @@ Set of related dims (attributes)
 Description (dummy variables) data to analysis
 
 ### Types of advanced dimensions
-(Type 1, 2, 3 is mostly based on business requirment
-	- Type 0
-	Should not change but may be change in some cases (error input).EX. SSN, DOB, Gender, Blood Group, Eye color
-	- Type 1
-	Data the dose change, but only the most recent value is shown. Update data and do not keep old record EX. Phone, Email refrence
-	- Type 2
-	Data changes, and now all changes or modifications are recorded and shown EX. Address (base on requirment), previous employers
-		- Record the start date and end date, for the most recent record, put the end date NULL or a very large date
-		- Use flag
-	- Type 3
-	Data changes, keep recorded but only certain number of records (only one record with certain number of columns) . EX. 3 most recent patient weight,
-	- Type 4
-	Use two tables, one table hold history records, the other hold only one most recent values. History have start date and end date hold all history records (like type 1 + type 3)
-	- Type 9
-	Combination of features from type 1, 2, and 3
-	- Junk dimension
-	Data from OLTP but is useless
-	- Conformed dimension
-	Different facts use same dimension as same means. EX. F(Sales) -- D(product name) -- F(inventory), product name is a conformed dimension
-	
-	- Degenerate
-	Useful but do not have any connection to  other
+(Type 1, 2, 3 is mostly based on business requirment)
+- Type 
+Should not change but may be change in some cases (error input).EX. SSN, DOB, Gender, Blood Group, Eye color
+- Type 1
+Data the dose change, but only the most recent value is shown. Update data and do not keep old record EX. Phone, Email refrence
+- Type 2
+Data changes, and now all changes or modifications are recorded and shown EX. Address (base on requirment), previous employers
+	- Record the start date and end date, for the most recent record, put the end date NULL or a very large date
+	- Use flag
+- Type 3
+Data changes, keep recorded but only certain number of records (only one record with certain number of columns) . EX. 3 most recent patient weight,
+- Type 4
+Use two tables, one table hold history records, the other hold only one most recent values. History have start date and end date hold all history records (like type 1 + type 3)
+- Type 9
+Combination of features from type 1, 2, and 3
+- Junk dimension
+Data from OLTP but is useless
+- Conformed dimension
+Different facts use same dimension as same means. EX. F(Sales) -- D(product name) -- F(inventory), product name is a conformed dimension
 
-	- Role playing dimension
-	F(Sales) -- D(EmpID) -- F(Manager)
+- Degenerate
+Useful but do not have any connection to  other
 
-	- Rapidly Changing
-	- Rapidly Growing
+- Role playing dimension
+F(Sales) -- D(EmpID) -- F(Manager)
 
-	- Late arriving dimension
-	EX. for gift card, the user information may come late (register later) or never get those information
+- Rapidly Changing
+- Rapidly Growing
 
-	- Inferred dimension/ Inferred dimension member
-	Way we handle late arriving dimension, we have some non Null columns and leave others information as NULL
+- Late arriving dimension
+EX. for gift card, the user information may come late (register later) or never get those information
 
-	- Junk dimension
-	EX. useless info
+- Inferred dimension/ Inferred dimension member
+Way we handle late arriving dimension, we have some non Null columns and leave others information as NULL
+
+- Junk dimension
+EX. useless info
 
 
-	- Wide Dimension, Narrow dimension
+- Wide Dimension, Narrow dimension
 
 ## Fact
 
@@ -288,3 +302,35 @@ How do design a data warehouse/data mart
 4. guralirity
 5. schema
 6. tools to design data warehouse (ErWin)
+
+# Methedology
+
+|Inmon|	Kimbal|
+|-----|-------|
+|1. Uses Top Down approach|1. Uses Bottom Up approach|
+|2. Uses one source of truth (centralized DWH)| 2. Uses/recommends multiple Data Marts in network as DWH|
+|3. Recommends Normalized DWH and denormalized (Star schema) Data Marts| 3. Recommends denormalized (Star Schema) Data Marts|
+|4. Slower ROI (Return on Investment) or more expensive.| 4. Faster ROI or cheaper process compared with Inmon methodology.|
+|5. Slower in delivering the final product| 5. Faster in delivering the final product.|
+|6. Recommends normalized/snow flake schema| 6. Recommends star schema|
+|7. Querying for complete data is easy as it proposes centralized DWH	| 7. Querying complete data is complex and in some cases inefficient as data is spread across multiple data marts|
+
+# Data Warehouse vs Data Mart
+
+|Data Warehouse	|Data Mart|
+|---------------|---------|
+|1. Centralized repository for all organizational data.| 1. Departmental data.|
+|2. One source of truth.| 2. Data is not complete in one repository makes it incomplete data.|
+|3. Usually DWH size is bigger compared to a DM for the same organization| 3. Usually size is smaller compared to a DWH.|
+
+# Scheme
+|star	|snowflake|
+|----	|---------|
+|1. all dimensions are directly connected to fact table| 1. Not all dimensions are directly connected to Fact table, some dimensions are indirectly (through other dims) connected to Fact Tables|
+|2. it is better in performance compared to snowflake in most of the cases.| 2. Little slower in performance.|
+|3. based on oltp structure not all oltps can be changed into star schemas| 3. In most of the cases OLTPs can be converted to Snowflake (even if it is complex structure)|
+|4. data redundancy is more.| 4. Data redundancy is less compared to Star|
+|5. no parent dimensions involved in design| 5. Parent and child dimensions are involved in design.|
+|6. ETL loading process is fairly easy.	| 6. ETL loading process is complex.|
+
+
